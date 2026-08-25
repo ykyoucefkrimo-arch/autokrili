@@ -28,3 +28,5 @@ Thumbs.db
 /autokree
 /autokrili
 /database/*.sqlite
+# Scripts jetables de mise au point, executes via `artisan tinker`.
+/_*.php
