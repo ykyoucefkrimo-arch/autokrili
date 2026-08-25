@@ -138,7 +138,7 @@ const submitSearch = () => {
                         {{ t('Tout voir') }}
                     </Link>
                 </div>
-                <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
                     <VehicleCard v-for="vehicle in latest" :key="vehicle.id" :vehicle="vehicle" />
                 </div>
             </section>
