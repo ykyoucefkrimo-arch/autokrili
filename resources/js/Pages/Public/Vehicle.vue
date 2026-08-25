@@ -230,7 +230,7 @@ const whatsappLink = computed(() => {
 
             <section v-if="similar.length" class="mt-12">
                 <h2 class="text-xl font-semibold text-gray-900">{{ t('Véhicules similaires') }}</h2>
-                <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
                     <VehicleCard v-for="item in similar" :key="item.id" :vehicle="item" />
                 </div>
             </section>

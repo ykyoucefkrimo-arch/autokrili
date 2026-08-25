@@ -186,7 +186,7 @@ const whatsappLink = computed(() => {
                             </p>
                         </div>
 
-                        <div v-else class="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                        <div v-else class="mt-4 grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
                             <VehicleCard v-for="vehicle in vehicles.data" :key="vehicle.id" :vehicle="vehicle" />
                         </div>
 

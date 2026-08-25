@@ -42,8 +42,8 @@ const price = (value) => (value === null ? null : Number(value).toLocaleString('
             </span>
         </div>
 
-        <div class="flex flex-1 flex-col p-4">
-            <h3 class="font-semibold text-gray-900">{{ vehicle.title }}</h3>
+        <div class="flex flex-1 flex-col p-3 sm:p-4">
+            <h3 class="line-clamp-2 text-sm font-semibold text-gray-900 sm:text-base">{{ vehicle.title }}</h3>
             <p class="mt-0.5 text-sm text-gray-500">
                 {{ vehicle.commune }}<template v-if="vehicle.wilaya">, {{ vehicle.wilaya }}</template>
             </p>
@@ -52,17 +52,17 @@ const price = (value) => (value === null ? null : Number(value).toLocaleString('
                 <span class="rounded bg-gray-100 px-1.5 py-0.5">{{ t(LABELS[vehicle.category]) }}</span>
                 <span class="rounded bg-gray-100 px-1.5 py-0.5">{{ t(LABELS[vehicle.transmission]) }}</span>
                 <span class="rounded bg-gray-100 px-1.5 py-0.5">{{ t(LABELS[vehicle.fuel]) }}</span>
-                <span class="rounded bg-gray-100 px-1.5 py-0.5">{{ vehicle.seats }} {{ t('places') }}</span>
-                <span v-if="vehicle.air_conditioning" class="rounded bg-gray-100 px-1.5 py-0.5">{{ t('Clim') }}</span>
+                <span class="hidden rounded bg-gray-100 px-1.5 py-0.5 sm:inline">{{ vehicle.seats }} {{ t('places') }}</span>
+                <span v-if="vehicle.air_conditioning" class="hidden rounded bg-gray-100 px-1.5 py-0.5 sm:inline">{{ t('Clim') }}</span>
             </div>
 
-            <div class="mt-auto flex items-end justify-between pt-4">
+            <div class="mt-auto flex flex-wrap items-end justify-between gap-x-2 gap-y-1 pt-3 sm:pt-4">
                 <div>
-                    <p v-if="vehicle.daily_price" class="text-lg font-bold text-gray-900">
-                        {{ price(vehicle.daily_price) }} <span class="text-sm font-medium text-gray-500">DA / {{ t('jour') }}</span>
+                    <p v-if="vehicle.daily_price" class="text-base font-bold text-gray-900 sm:text-lg">
+                        {{ price(vehicle.daily_price) }} <span class="text-xs font-medium text-gray-500 sm:text-sm">DA / {{ t('jour') }}</span>
                     </p>
                     <p v-else class="text-sm text-gray-500">{{ t('Prix sur demande') }}</p>
-                    <p class="text-xs text-gray-500">{{ vehicle.agency }}</p>
+                    <p class="truncate text-xs text-gray-500">{{ vehicle.agency }}</p>
                 </div>
                 <div v-if="vehicle.reviews_count > 0" class="text-right text-xs text-gray-600">
                     <span class="font-semibold text-gray-900">{{ Number(vehicle.rating).toFixed(1) }}</span> / 5
