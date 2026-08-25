@@ -40,7 +40,14 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            // Sur un hebergement mutualise, la racine du site est imposee
+            // (public_html) et le gestionnaire de fichiers ne sait pas creer
+            // de lien symbolique. PUBLIC_DISK_ROOT, relatif a la racine du
+            // projet, laisse alors ecrire les photos directement dans le
+            // dossier servi. Non defini, on garde le lien symbolique habituel.
+            'root' => env('PUBLIC_DISK_ROOT')
+                ? base_path(env('PUBLIC_DISK_ROOT'))
+                : storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
