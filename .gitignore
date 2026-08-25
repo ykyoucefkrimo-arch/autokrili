@@ -13,7 +13,6 @@
 /.zed
 /auth.json
 /node_modules
-/public/build
 /public/hot
 /public/storage
 /storage/*.key
@@ -30,3 +29,10 @@ Thumbs.db
 /database/*.sqlite
 # Scripts jetables de mise au point, executes via `artisan tinker`.
 /_*.php
+
+# --- Branche « demo » uniquement ---------------------------------------
+# Le serveur de demonstration n'a pas Node : les assets compiles, les
+# photos de demonstration et le dump de la base voyagent donc avec le
+# code. Sur « main » ces trois chemins restent exclus.
+!/public/build
+!/storage/app/public/vehicles

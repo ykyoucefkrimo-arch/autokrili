@@ -1,2 +1,7 @@
 *
 !.gitignore
+
+# Branche « demo » : les photos des vehicules de demonstration partent
+# avec le code, faute de quoi le catalogue s'affiche sans images.
+!vehicles/
+!vehicles/**
