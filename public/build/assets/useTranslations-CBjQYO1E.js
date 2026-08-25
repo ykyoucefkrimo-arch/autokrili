@@ -1,0 +1,1 @@
+import{A as s,L as l}from"./app-TLhXUJPk.js";function d(){const t=l(),e=s(()=>t.props.locale??"fr"),n=s(()=>t.props.rtl===!0);return{t:(o,a={})=>{let r=(t.props.translations??{})[o]??o;return Object.entries(a).forEach(([c,p])=>{r=r.replace(`:${c}`,p)}),r},locale:e,rtl:n}}export{d as u};
