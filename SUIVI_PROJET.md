@@ -1093,3 +1093,34 @@ aucune boucle de vérification ne s'ouvre, et l'événement `Registered` n'est
 plus émis pour rien.
 
 **255 tests, 1258 assertions.**
+
+### Le bouton de recherche sortait de la carte
+
+Signalé comme « le décalage du bouton ». Ma première correction — égaliser la
+hauteur à 38 px — était juste mais répondait à côté : elle a aligné les
+boîtes, pas réglé ce qui se voyait.
+
+**Ce qu'il fallait mesurer**, et que j'ai mesuré seulement au second tour :
+`form.scrollWidth` 896 pour un `clientWidth` de 856. Le formulaire débordait
+de 40 px, et le bouton arrivait à x=997 quand la carte s'arrête à 977 — il
+mordait sur la photo.
+
+La cause tient en une règle de la grille CSS : **une piste ne descend pas sous
+le contenu minimum de son élément**. Or un `<select>` tire sa largeur
+intrinsèque de son option la plus longue — le plus long nom de wilaya. Les
+deux listes réclamaient 227 et 190 px, les dates 146 chacune, le bouton 139 ;
+avec les gouttières, 896 px pour 856 disponibles. Le dernier élément était
+poussé dehors.
+
+`minmax(0, 1fr)` sur les listes et `min-w-0` sur leurs enveloppes autorisent
+le rétrécissement ; les dates passent à une largeur fixe de 9,5 rem, au-dessus
+de leur contenu minimum mesuré (146 px). Le bouton perd deux unités de marge
+interne pour rendre aux listes de quoi afficher « Toutes les communes » en
+entier.
+
+*La leçon, pour la troisième fois sur ce projet* : capturer ne suffit pas, il
+faut lire `scrollWidth` contre `clientWidth`. Une capture montre qu'un élément
+est mal placé, pas de combien ni pourquoi.
+
+Vérifié à 390, 640, 768, 1024, 1280 et 1536 px : débordement nul partout, page
+comme formulaire.
