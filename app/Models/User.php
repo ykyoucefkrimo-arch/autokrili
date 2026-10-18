@@ -29,6 +29,11 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'name',
         'email',
+        // Sans cette ligne, `User::create()` ecarte l'identifiant Google
+        // EN SILENCE : le compte est cree, mais plus rien ne le relie au
+        // compte Google, et l'utilisateur se retrouve avec un doublon a sa
+        // prochaine connexion. Attrape par le test le 2026-10-18.
+        'google_id',
         'password',
         'phone',
         'role',

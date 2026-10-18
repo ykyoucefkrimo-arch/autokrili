@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AuthGoogleController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
@@ -16,6 +17,21 @@ Route::middleware('guest')->group(function () {
         ->name('register');
 
     Route::post('register', [RegisteredUserController::class, 'store']);
+
+    /*
+     * Connexion par compte Google.
+     *
+     * Dans le groupe `guest` comme les autres : proposer « se connecter »
+     * a quelqu'un de deja connecte n'a pas de sens, et le retour creerait
+     * une seconde session.
+     *
+     * Les deux routes repondent 404 tant que les identifiants ne sont pas
+     * renseignes — voir AuthGoogleController::estConfigure().
+     */
+    Route::get('auth/google', [AuthGoogleController::class, 'rediriger'])
+        ->name('auth.google');
+    Route::get('auth/google/retour', [AuthGoogleController::class, 'retour'])
+        ->name('auth.google.retour');
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
