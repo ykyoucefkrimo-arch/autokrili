@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+    /*
+     * Connexion par compte Google (2026-10-18).
+     *
+     * L'URL de retour est declaree a l'identique dans la console Google
+     * Cloud : au moindre ecart — http au lieu de https, barre finale en
+     * trop — Google refuse avec `redirect_uri_mismatch`, sans rien dire de
+     * plus. Elle est donc construite a partir d'APP_URL, et il faudra la
+     * redeclarer le jour du passage sur le domaine definitif.
+     */
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL').'/auth/google/retour'),
+    ],
+
 ];

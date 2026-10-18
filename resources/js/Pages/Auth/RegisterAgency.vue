@@ -155,7 +155,7 @@ const submit = () => {
                 </div>
 
                 <div>
-                    <InputLabel for="email" value="Email" />
+                    <InputLabel for="email" :value="t('Adresse e-mail')" />
                     <TextInput id="email" v-model="form.email" type="email" class="mt-1 block w-full"
                         required autocomplete="username" />
                     <InputError class="mt-2" :message="form.errors.email" />

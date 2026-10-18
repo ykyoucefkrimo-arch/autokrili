@@ -73,6 +73,10 @@ class HandleInertiaRequests extends Middleware
             // La langue et son dictionnaire (§7.2). Le fichier est petit et
             // ne change qu'au deploiement : l'envoyer avec la page evite un
             // aller-retour au premier affichage.
+            // Le bouton « continuer avec Google » ne s'affiche que si les
+            // identifiants sont renseignes : sinon il menerait a une page
+            // d'erreur de Google, ce qui est pire que son absence.
+            'googleAuth' => \App\Http\Controllers\Auth\AuthGoogleController::estConfigure(),
             // La boite d'envoi n'a de sens qu'avec le mailer « file ».
             'mailboxEnabled' => config('mail.default') === 'file',
             'locale' => app()->getLocale(),
