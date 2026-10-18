@@ -7,6 +7,7 @@ use Laravel\Socialite\Two\User as SocialiteUser;
 use function Pest\Laravel\assertAuthenticatedAs;
 use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\get;
+use function Pest\Laravel\seed;
 
 /**
  * Connexion et inscription par compte Google.
@@ -133,4 +134,64 @@ it('ne cree jamais qu un client, jamais une agence', function () {
 
     expect(User::where('email', 'nadia@gmail.com')->first()->role)->toBe(User::ROLE_CLIENT);
     expect(App\Models\Agency::count())->toBe(0);
+});
+
+/**
+ * Le 404 du 18 octobre 2026, en production.
+ *
+ * Quelqu'un ouvre l'espace agence en visiteur. `auth` retient l'adresse sous
+ * `url.intended` et le renvoie se connecter. Il choisit Google, le compte se
+ * cree — et `intended()` le repose sur `/agence`, ou la garde repond 404 a
+ * qui n'a pas d'agence. Connexion reussie, page blanche.
+ *
+ * La regle : une intention qui mene a un mur n'est pas honoree.
+ */
+it('ignore une intention que le role ne peut pas atteindre', function (string $mur) {
+    googleRend(profilGoogle());
+
+    session(['url.intended' => url($mur)]);
+
+    get(route('auth.google.retour'))->assertRedirect(route('home'));
+})->with([
+    'espace agence' => '/agence',
+    'administration' => '/admin',
+    'une page profonde de l administration' => '/admin/agences/3',
+]);
+
+it('honore une intention ordinaire', function () {
+    googleRend(profilGoogle());
+
+    session(['url.intended' => url('/vehicules')]);
+
+    // Sans cela, cliquer « Reserver » puis se connecter ferait perdre le
+    // vehicule qu'on regardait : le filtre ne doit pas tout jeter.
+    get(route('auth.google.retour'))->assertRedirect(url('/vehicules'));
+});
+
+it('refuse une intention vers un autre domaine', function () {
+    googleRend(profilGoogle());
+
+    session(['url.intended' => 'https://autokrili-pas-vraiment.example/connexion']);
+
+    // Une redirection ouverte sert a faire passer une page d'hameconnage pour
+    // la notre : l'utilisateur part de chez nous et atterrit ailleurs sans
+    // avoir rien fait d'autre que se connecter.
+    get(route('auth.google.retour'))->assertRedirect(route('home'));
+});
+
+it('conduit une agence a son tableau de bord', function () {
+    // `agencyOn` a besoin des wilayas et des forfaits ; on ne les amorce que
+    // pour ce cas, les autres n'ont aucune geographie a connaitre.
+    seed(Database\Seeders\WilayaSeeder::class);
+    seed(Database\Seeders\PlanSeeder::class);
+
+    $agence = agencyOn(email: 'gerant@gmail.com');
+
+    // Une agence PEUT se connecter par Google ; ce qui est interdit, c'est de
+    // CREER une agence ainsi, puisque l'inscription passe par la moderation.
+    googleRend(profilGoogle(email: 'gerant@gmail.com'));
+
+    get(route('auth.google.retour'))->assertRedirect(route('agency.dashboard'));
+
+    expect($agence->user->fresh()->google_id)->toBe('1234567890');
 });

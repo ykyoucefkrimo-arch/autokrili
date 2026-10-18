@@ -1048,3 +1048,32 @@ la volée. Comparer les fichiers sur disque, pas les tailles de réponse.
 **Ce qui bloque encore le produit** : `MAIL_MAILER=file` en production. Rien
 ne part. L'approbation d'une agence et les notifications de réservation
 n'arrivent donc jamais à leur destinataire.
+
+### Le 404 après connexion Google
+
+Premier essai en production : la connexion réussit, le compte se crée — et
+l'écran affiche « 404 NOT FOUND ». Les journaux étaient muets, et le compte
+bien présent en base. La connexion n'était donc pas en cause : la redirection
+qui la suit l'était.
+
+**Le mécanisme.** Un visiteur ouvre `/agence`. L'intergiciel `auth` retient
+l'adresse sous `url.intended` et le renvoie se connecter. Il choisit Google,
+un compte client se crée, et `redirect()->intended()` le repose exactement où
+il voulait aller — sur une page que son rôle ne peut pas voir. Or `/admin` et
+`/agence` répondent **404 et non 403**, délibérément : l'existence du back
+office ne se confirme pas à un inconnu. L'intention retenue était un piège.
+
+`intended()` ne vérifie rien, et c'est normal : il ne peut pas savoir. Le
+filtre manquait, et il manquait **aussi à la connexion par mot de passe** —
+même ligne, même défaut, découvert en cherchant celui-ci.
+
+D'où `App\Support\ApresConnexion`, seul endroit où cette décision se prend
+désormais. Elle écarte une intention qui vise un espace réservé, et au passage
+une intention vers un autre domaine — `intended()` l'aurait suivie, ce qui est
+précisément comment on fait passer une page d'hameçonnage pour la nôtre.
+
+*Piège rencontré en l'écrivant* : `blank(false)` vaut **false**. Laravel ne
+considère jamais un booléen comme vide, donc `blank($user->isAdmin())` laissait
+passer tout le monde. Négation simple.
+
+**249 tests, 1153 assertions.**

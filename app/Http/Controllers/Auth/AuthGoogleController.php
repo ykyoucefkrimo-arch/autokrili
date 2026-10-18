@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\ApresConnexion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -93,8 +94,14 @@ class AuthGoogleController extends Controller
          * interdit, c'est de CRÉER une agence ainsi. On la renvoie donc chez
          * elle, comme le fait la connexion par mot de passe.
          */
-        return redirect()->intended(
-            $utilisateur->activeAgency() ? route('agency.dashboard') : route('home')
+        /*
+         * `ApresConnexion` plutot que `intended()` nu : l'adresse retenue en
+         * session peut viser un espace que ce compte n'a pas le droit de voir,
+         * et la garde y repond 404. Voir la classe.
+         */
+        return ApresConnexion::versIntentionOu(
+            $utilisateur->activeAgency() ? route('agency.dashboard') : route('home'),
+            $utilisateur
         );
     }
 
