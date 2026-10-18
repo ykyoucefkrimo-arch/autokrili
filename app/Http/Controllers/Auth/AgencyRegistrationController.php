@@ -56,7 +56,6 @@ class AgencyRegistrationController extends Controller
         $agency = $this->registration->register(
             $request->validated(),
             $request->file('logo'),
-            $request->file('trade_register_file'),
             $proprietaire,
         );
 

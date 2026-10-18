@@ -20,10 +20,9 @@ class AgencyRegistrationService
     public function register(
         array $data,
         ?UploadedFile $logo,
-        UploadedFile $tradeRegister,
         ?User $proprietaire = null,
     ): Agency {
-        return DB::transaction(function () use ($data, $logo, $tradeRegister, $proprietaire) {
+        return DB::transaction(function () use ($data, $logo, $proprietaire) {
             /*
              * Un compte deja connecte devient le compte de l'agence au lieu
              * d'en creer un second (2026-10-18). Sans cela, quelqu'un arrive
@@ -56,8 +55,6 @@ class AgencyRegistrationService
                 'commercial_name' => $data['commercial_name'],
                 'slug' => $this->uniqueSlug($data['commercial_name']),
                 'manager_name' => $data['manager_name'],
-                'trade_register_number' => $data['trade_register_number'],
-                'nif' => $data['nif'] ?? null,
                 'wilaya_id' => $data['wilaya_id'],
                 'commune_id' => $data['commune_id'],
                 'address' => $data['address'],
@@ -65,7 +62,6 @@ class AgencyRegistrationService
                 'whatsapp' => $data['whatsapp'] ?? null,
                 'description' => $data['description'] ?? null,
                 'logo_path' => $logo ? $this->storeLogo($logo) : null,
-                'trade_register_file' => $this->storeTradeRegister($tradeRegister),
                 'status' => Agency::STATUS_PENDING,
             ]);
         });
@@ -95,13 +91,9 @@ class AgencyRegistrationService
         return $file->store('agencies/logos', 'public');
     }
 
-    /**
-     * The trade register is an identity document. It goes on the `local` disk,
-     * outside anything the web server serves, and is readable only through a
-     * policy-guarded route (specification 11).
+    /*
+     * `storeTradeRegister()` retiree le 2026-10-18 avec le champ qui
+     * l'alimentait. Les documents deja deposes restent sur le disque `local`
+     * et continuent d'etre servis par la route de l'administration.
      */
-    private function storeTradeRegister(UploadedFile $file): string
-    {
-        return $file->store('agencies/trade-registers', 'local');
-    }
 }

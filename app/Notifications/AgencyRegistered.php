@@ -28,7 +28,10 @@ class AgencyRegistered extends Notification implements ShouldQueue
             return (new MailMessage)
                 ->subject("Nouvelle inscription d'agence — {$this->agency->commercial_name}")
                 ->line("L'agence « {$this->agency->commercial_name} » ({$this->agency->wilaya?->name_fr}) attend une décision.")
-                ->line("Registre de commerce : {$this->agency->trade_register_number}")
+                // Plus demande a l'inscription : la ligne ne sort que pour
+                // les agences qui en avaient fourni un.
+                ->when($this->agency->trade_register_number, fn ($message) => $message
+                    ->line("Registre de commerce : {$this->agency->trade_register_number}"))
                 ->action('Examiner la demande', url("/admin/agences/{$this->agency->id}"));
         }
 

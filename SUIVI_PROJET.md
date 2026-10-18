@@ -1150,3 +1150,28 @@ une journée de page blanche.
 avant d'être annoncé. Un 200 ne prouve rien sur une application Inertia.
 
 **256 tests, 1259 assertions.**
+
+### Le registre de commerce n'est plus demandé
+
+Décision du propriétaire, le 2026-10-18. Le formulaire exigeait un numéro de
+registre, un NIF et le téléversement du document : trois obstacles avant même
+de savoir si la plateforme vaut la peine. Sur un produit dont toute
+l'acquisition repose sur le recrutement d'agences, c'est la friction la plus
+coûteuse — et le téléversement, depuis un téléphone, l'est doublement.
+
+**Les colonnes restent.** Sept agences sont déjà inscrites avec leur registre ;
+les supprimer effacerait ces informations sans retour possible. Seule
+l'obligation disparaît : `trade_register_number` devient nullable, et
+l'administration comme l'espace agence affichent « — » quand le champ est
+vide. La route de téléchargement du document reste en place pour les dossiers
+qui en ont un.
+
+Ce qui protège les visiteurs n'était pas le document mais **la modération** :
+elle est intacte, et une agence reste en attente jusqu'à l'approbation.
+
+*Un test ajouté à la place de ceux qui n'avaient plus d'objet* : un
+`trade_register_file` posté malgré tout — vieux formulaire en cache, robot —
+ne doit rien écrire sur le disque. Le champ n'est plus validé, donc plus
+stocké ; le vérifier évite qu'une réintroduction silencieuse passe inaperçue.
+
+**256 tests, 1264 assertions.**

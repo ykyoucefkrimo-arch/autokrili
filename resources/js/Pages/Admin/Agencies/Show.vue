@@ -92,7 +92,7 @@ const post = (action, data = {}) => {
                             </div>
                             <div>
                                 <dt class="text-gray-500">Registre de commerce</dt>
-                                <dd class="text-gray-900">{{ agency.trade_register_number }}</dd>
+                                <dd class="text-gray-900">{{ agency.trade_register_number || '—' }}</dd>
                             </div>
                             <div>
                                 <dt class="text-gray-500">NIF</dt>

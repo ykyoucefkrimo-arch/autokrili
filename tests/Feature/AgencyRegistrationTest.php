@@ -26,8 +26,6 @@ function validAgencyPayload(Wilaya $wilaya, Commune $commune): array
     return [
         'commercial_name' => 'Alger Location Test',
         'manager_name' => 'Karim Belhadi',
-        'trade_register_number' => '16/00-1234567',
-        'nif' => '000916001234567',
         'wilaya_id' => $wilaya->id,
         'commune_id' => $commune->id,
         'address' => '12 rue Didouche Mourad',
@@ -35,7 +33,6 @@ function validAgencyPayload(Wilaya $wilaya, Commune $commune): array
         'email' => 'contact@alger-location.dz',
         'password' => 'motdepasse-solide-1',
         'password_confirmation' => 'motdepasse-solide-1',
-        'trade_register_file' => UploadedFile::fake()->create('registre.pdf', 200, 'application/pdf'),
     ];
 }
 
@@ -69,28 +66,48 @@ it('cree un compte agence en attente de moderation', function () {
         ->and($agency->subscriptions()->count())->toBe(0);
 });
 
-it('range le registre de commerce hors du disque public', function () {
+/**
+ * Le registre de commerce n'est plus demande (2026-10-18).
+ *
+ * Il l'etait : numero, NIF et televersement du document, trois obstacles
+ * avant de savoir si la plateforme vaut la peine. Sur un produit dont toute
+ * l'acquisition repose sur le recrutement d'agences, c'etait la friction la
+ * plus couteuse.
+ *
+ * Les colonnes restent en base pour les agences deja inscrites, et
+ * l'administration les affiche quand elles existent.
+ */
+it('inscrit une agence sans registre de commerce ni NIF', function () {
     Storage::fake('local');
     Storage::fake('public');
     Notification::fake();
 
-    post(route('agency.register'), validAgencyPayload($this->wilaya, $this->commune));
+    post(route('agency.register'), validAgencyPayload($this->wilaya, $this->commune))
+        ->assertRedirect(route('agency.pending'));
 
     $agency = Agency::firstOrFail();
 
-    // C'est un document d'identite : il ne doit exister que sur le disque prive.
-    Storage::disk('local')->assertExists($agency->trade_register_file);
-    Storage::disk('public')->assertMissing($agency->trade_register_file);
+    expect($agency->trade_register_number)->toBeNull()
+        ->and($agency->nif)->toBeNull()
+        ->and($agency->trade_register_file)->toBeNull()
+        // La moderation reste : c'est elle qui protege les visiteurs, pas le
+        // document.
+        ->and($agency->status)->toBe(Agency::STATUS_PENDING);
 });
 
-it('refuse une inscription sans registre de commerce', function () {
-    $payload = validAgencyPayload($this->wilaya, $this->commune);
-    unset($payload['trade_register_file']);
+it('ignore un registre de commerce envoye malgre tout', function () {
+    Storage::fake('local');
+    Notification::fake();
 
-    post(route('agency.register'), $payload)
-        ->assertSessionHasErrors('trade_register_file');
+    // Un vieux formulaire en cache, ou un robot, peut encore poster le champ.
+    // Rien ne doit etre ecrit sur le disque pour autant.
+    post(route('agency.register'), validAgencyPayload($this->wilaya, $this->commune) + [
+        'trade_register_file' => UploadedFile::fake()->create('registre.pdf', 200, 'application/pdf'),
+        'trade_register_number' => '16/00-1234567',
+    ])->assertRedirect(route('agency.pending'));
 
-    expect(Agency::count())->toBe(0);
+    expect(Agency::firstOrFail()->trade_register_file)->toBeNull();
+    expect(Storage::disk('local')->allFiles())->toBeEmpty();
 });
 
 it('refuse une commune qui n appartient pas a la wilaya choisie', function () {

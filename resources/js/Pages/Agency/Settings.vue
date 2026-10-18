@@ -130,7 +130,7 @@ const submit = () => {
                         <div class="grid gap-4 rounded-md bg-gray-50 p-3 text-sm sm:grid-cols-2">
                             <p class="text-gray-600">
                                 Registre de commerce :
-                                <span class="font-medium text-gray-900">{{ agency.trade_register_number }}</span>
+                                <span class="font-medium text-gray-900">{{ agency.trade_register_number ?? '—' }}</span>
                             </p>
                             <p class="text-gray-600">
                                 NIF : <span class="font-medium text-gray-900">{{ agency.nif ?? '—' }}</span>
