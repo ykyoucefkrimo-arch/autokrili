@@ -19,8 +19,12 @@ class RegisterAgencyRequest extends FormRequest
         return [
             'commercial_name' => ['required', 'string', 'max:150'],
             'manager_name' => ['required', 'string', 'max:150'],
-            'trade_register_number' => ['required', 'string', 'max:50'],
-            'nif' => ['nullable', 'string', 'max:30'],
+            /*
+             * Plus de registre de commerce ni de NIF depuis le 2026-10-18 :
+             * trois champs de moins avant de savoir si la plateforme vaut la
+             * peine. Les colonnes existent toujours pour les agences qui en
+             * avaient fourni un.
+             */
 
             'wilaya_id' => ['required', 'integer', 'exists:wilayas,id'],
             // The commune must belong to the chosen wilaya, otherwise an agency
@@ -53,8 +57,6 @@ class RegisterAgencyRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:2000'],
 
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            // The document the administrator opens to decide: mandatory.
-            'trade_register_file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ];
     }
 
@@ -69,10 +71,8 @@ class RegisterAgencyRequest extends FormRequest
         return [
             'commercial_name' => 'nom commercial',
             'manager_name' => 'nom du gérant',
-            'trade_register_number' => 'numéro de registre de commerce',
             'wilaya_id' => 'wilaya',
             'commune_id' => 'commune',
-            'trade_register_file' => 'registre de commerce',
         ];
     }
 
@@ -82,8 +82,6 @@ class RegisterAgencyRequest extends FormRequest
             'phone.regex' => 'Le téléphone doit être au format +213 5 55 12 34 56 ou 05 55 12 34 56.',
             'whatsapp.regex' => 'Le numéro WhatsApp doit être au format +213 5 55 12 34 56 ou 05 55 12 34 56.',
             'commune_id.exists' => 'Cette commune n’appartient pas à la wilaya sélectionnée.',
-            'trade_register_file.required' => 'Le registre de commerce est obligatoire : il sert à vérifier votre agence.',
-            'trade_register_file.max' => 'Le registre de commerce ne doit pas dépasser 10 Mo.',
             'logo.max' => 'Le logo ne doit pas dépasser 5 Mo.',
         ];
     }

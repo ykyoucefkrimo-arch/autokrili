@@ -23,8 +23,6 @@ const form = useForm({
     // Le nom du compte connecte, qu'on peut toujours corriger : le gerant
     // n'est pas forcement celui qui tient le compte.
     manager_name: props.compte?.name ?? '',
-    trade_register_number: '',
-    nif: '',
     wilaya_id: '',
     commune_id: '',
     address: '',
@@ -35,7 +33,6 @@ const form = useForm({
     password_confirmation: '',
     description: '',
     logo: null,
-    trade_register_file: null,
 });
 
 // Les communes sont chargées à la demande : le pays en compte 1541, et les
@@ -63,7 +60,7 @@ const submit = () => {
             <h1 class="text-xl font-semibold text-gray-900">Inscrire mon agence</h1>
             <p class="mt-2 text-sm text-gray-600">
                 Votre demande est vérifiée par notre équipe sous 48&nbsp;heures ouvrées.
-                Le registre de commerce nous sert à confirmer l'existence de l'agence.
+                L'inscription est gratuite et ne prend que quelques minutes.
             </p>
         </div>
 
@@ -78,20 +75,6 @@ const submit = () => {
                     <TextInput id="commercial_name" v-model="form.commercial_name" type="text"
                         class="mt-1 block w-full" required autofocus />
                     <InputError class="mt-2" :message="form.errors.commercial_name" />
-                </div>
-
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <InputLabel for="trade_register_number" value="N° de registre de commerce" />
-                        <TextInput id="trade_register_number" v-model="form.trade_register_number"
-                            type="text" class="mt-1 block w-full" required />
-                        <InputError class="mt-2" :message="form.errors.trade_register_number" />
-                    </div>
-                    <div>
-                        <InputLabel for="nif" value="NIF (facultatif)" />
-                        <TextInput id="nif" v-model="form.nif" type="text" class="mt-1 block w-full" />
-                        <InputError class="mt-2" :message="form.errors.nif" />
-                    </div>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -198,22 +181,13 @@ const submit = () => {
                 </template>
             </section>
 
+            <!-- Le registre de commerce n'est plus demandé (2026-10-18) :
+                 trois champs de moins avant de savoir si la plateforme vaut
+                 la peine. La section ne garde que le logo. -->
             <section class="space-y-4 border-t border-gray-200 pt-6">
                 <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    Documents
+                    Logo
                 </h2>
-
-                <div>
-                    <InputLabel for="trade_register_file" value="Registre de commerce" />
-                    <input id="trade_register_file" type="file" accept=".pdf,.jpg,.jpeg,.png" required
-                        @input="form.trade_register_file = $event.target.files[0]"
-                        class="mt-1 block w-full text-sm text-gray-700 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100" />
-                    <p class="mt-1 text-xs text-gray-500">
-                        PDF ou image, 10&nbsp;Mo maximum. Ce document reste confidentiel : seul
-                        l'administrateur y a accès, il ne sera jamais publié.
-                    </p>
-                    <InputError class="mt-2" :message="form.errors.trade_register_file" />
-                </div>
 
                 <div>
                     <InputLabel for="logo" value="Logo (facultatif)" />
