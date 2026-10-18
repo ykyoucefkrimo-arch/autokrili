@@ -61,6 +61,13 @@ const showingNavigationDropdown = ref(false);
                                     Avis
                                 </NavLink>
                                 <NavLink
+                                    v-if="$page.props.auth.user?.role === 'admin'"
+                                    :href="route('admin.users.index')"
+                                    :active="route().current('admin.users.*')"
+                                >
+                                    Utilisateurs
+                                </NavLink>
+                                <NavLink
                                     v-if="$page.props.auth.user?.role === 'admin' && $page.props.mailboxEnabled"
                                     :href="route('admin.mailbox.index')"
                                     :active="route().current('admin.mailbox.*')"
@@ -257,6 +264,13 @@ const showingNavigationDropdown = ref(false);
                             :active="route().current('admin.vehicles.*')"
                         >
                             Annonces
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="$page.props.auth.user?.role === 'admin'"
+                            :href="route('admin.users.index')"
+                            :active="route().current('admin.users.*')"
+                        >
+                            Utilisateurs
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             v-if="$page.props.auth.agency?.status === 'approved'"
