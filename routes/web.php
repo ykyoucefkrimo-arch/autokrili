@@ -57,7 +57,7 @@ Route::get('communes/{wilaya:slug}', CommuneController::class)->name('communes.i
 // Clic sur le telephone ou WhatsApp : le signal le plus fort du site public,
 // et le navigateur est seul a savoir qu'il a eu lieu.
 Route::post('vehicule/{vehicle}/contact', ContactClickController::class)
-    ->middleware('throttle:60,1')
+    ->middleware('throttle:60,1,contact')
     ->name('vehicles.contact');
 
 // Fiche agence : /agence-de-location/alger-prestige-cars
@@ -82,6 +82,18 @@ Route::get('vehicule/{vehicle}-{slug}', [CatalogController::class, 'show'])
 
 /*
 |--------------------------------------------------------------------------
+| ATTENTION aux limitations de debit : le TROISIEME parametre de `throttle`
+| n'est pas decoratif.
+|
+| `ThrottleRequests` compose sa cle ainsi : `prefixe . signature`. Et pour un
+| utilisateur connecte, la signature se reduit a son identifiant — ni l'URL,
+| ni la methode, ni le nom de la route n'y entrent. Sans prefixe distinct,
+| TOUTES les routes limitees partagent donc un seul compteur par personne.
+|
+| Constate en production le 2026-10-18 : apres quelques changements de wilaya
+| et un clic sur un numero de telephone, reserver une voiture repondait 429.
+| Le compteur de la reservation avait ete consomme par d'autres routes.
+|
 | Tunnel de reservation
 |--------------------------------------------------------------------------
 | Ouvert aux visiteurs : le compte client est cree au passage (§15). Exiger
@@ -94,7 +106,7 @@ Route::get('vehicule/{vehicle}/devis', [PublicBookingController::class, 'quote']
     ->name('bookings.quote');
 Route::post('vehicule/{vehicle}/reserver', [PublicBookingController::class, 'store'])
     // Chaque envoi peut creer un compte : le formulaire est limite.
-    ->middleware('throttle:10,1')
+    ->middleware('throttle:10,1,reservation')
     ->name('bookings.store');
 
 Route::middleware('auth')->group(function () {
@@ -138,7 +150,7 @@ Route::get('inscription-agence', [AgencyRegistrationController::class, 'create']
     ->name('agency.register');
 Route::post('inscription-agence', [AgencyRegistrationController::class, 'store'])
     // Rate limited: this form creates an account and writes two files.
-    ->middleware('throttle:6,1');
+    ->middleware('throttle:6,1,inscription-agence');
 
 /*
 |--------------------------------------------------------------------------
@@ -165,7 +177,7 @@ Route::middleware(['auth'])->prefix('agence')->name('agency.')->group(function (
 
         Route::post('vehicules/{vehicle}/photos', [VehiclePhotoController::class, 'store'])
             // Chaque upload écrit trois dérivés sur le disque.
-            ->middleware('throttle:30,1')
+            ->middleware('throttle:30,1,photos')
             ->name('vehicles.photos.store');
         Route::post('vehicules/{vehicle}/photos/ordre', [VehiclePhotoController::class, 'reorder'])
             ->name('vehicles.photos.reorder');

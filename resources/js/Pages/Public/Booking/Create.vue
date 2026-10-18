@@ -72,17 +72,45 @@ const rangeHasTakenDate = computed(() => {
     return false;
 });
 
+/*
+ * Le meme format que le serveur exige.
+ *
+ * Il etait absent, et l'etape ne verifiait que le REMPLISSAGE : « 0555 »
+ * passait, et l'erreur n'arrivait qu'a l'envoi final — sur un champ devenu
+ * invisible deux etapes plus tot. On refuse donc ici, pendant que le champ
+ * est sous les yeux.
+ */
+const TELEPHONE_DZ = /^(\+213[\s.-]?[5-7]|0[5-7])([\s.-]?\d{2}){4}$/;
+
+const telephoneValide = computed(() => TELEPHONE_DZ.test(form.client_phone.trim()));
+
 const canContinue = computed(() => {
     if (step.value === 0) {
         return form.start_date && form.end_date && !rangeHasTakenDate.value && quote.value?.available;
     }
     if (step.value === 1) {
-        return form.client_name && form.client_phone;
+        return form.client_name.trim() && telephoneValide.value;
     }
     return true;
 });
 
-const submit = () => form.post(route('bookings.store', props.vehicle.id));
+// A quelle etape vit chaque champ : sans cela, une erreur du serveur sur le
+// nom ou le telephone s'afficherait sur une etape que l'on ne regarde pas,
+// et l'envoi semblerait echouer sans raison.
+const ETAPE_DU_CHAMP = {
+    start_date: 0, end_date: 0, with_driver: 0, availability: 0,
+    client_name: 1, client_phone: 1, client_email: 1, driver_license_number: 1,
+};
+
+const submit = () => form.post(route('bookings.store', props.vehicle.id), {
+    onError: (erreurs) => {
+        const etapes = Object.keys(erreurs)
+            .map((champ) => ETAPE_DU_CHAMP[champ])
+            .filter((e) => e !== undefined);
+
+        if (etapes.length) step.value = Math.min(...etapes);
+    },
+});
 </script>
 
 <template>
@@ -183,6 +211,12 @@ const submit = () => form.post(route('bookings.store', props.vehicle.id));
                                 <InputLabel for="phone" :value="t('Téléphone')" />
                                 <TextInput id="phone" v-model="form.client_phone" class="mt-1 block w-full"
                                     placeholder="05 55 12 34 56" />
+                                <!-- Un bouton grise sans explication ressemble a
+                                     une panne : on dit ce qui manque. -->
+                                <p v-if="form.client_phone && !telephoneValide"
+                                    class="mt-1 text-sm text-amber-700">
+                                    {{ t('Format attendu : 05 55 12 34 56 ou +213 5 55 12 34 56.') }}
+                                </p>
                                 <InputError :message="form.errors.client_phone" class="mt-1" />
                             </div>
                             <div>

@@ -1286,3 +1286,40 @@ plus.
 Attention avant de l'activer : la base contient encore les agences et clients
 de démonstration, avec des adresses `@demo.dz`. Lancer le planificateur leur
 enverrait des courriels et ferait vieillir leurs formules.
+
+### Deux défauts du tunnel de réservation
+
+Signalés ensemble, sans rapport entre eux.
+
+**Le 429.** `ThrottleRequests` compose sa clé ainsi : `préfixe . signature`.
+Et pour un utilisateur connecté, la signature **se réduit à son
+identifiant** — ni l'URL, ni la méthode, ni le nom de la route n'y entrent.
+Le troisième paramètre de `throttle` est ce préfixe ; il était absent partout.
+Les quatre routes limitées du projet partageaient donc **un seul compteur par
+personne** : quelques clics sur un numéro de téléphone, consommés sur une
+limite de 60, fermaient la réservation dont la limite est 10.
+
+Chaque route a maintenant son préfixe : `contact`, `reservation`,
+`inscription-agence`, `photos`. Un test vérifie qu'on peut réserver après
+vingt-cinq clics ailleurs, un autre que la limite propre au formulaire tient
+toujours.
+
+**Le téléphone accepté à tort.** Le serveur le validait correctement ; c'est
+le formulaire qui laissait passer. Il compte trois étapes, et le passage à la
+suivante ne vérifiait que le REMPLISSAGE :
+
+```js
+if (step.value === 1) return form.client_name && form.client_phone;
+```
+
+« 0555 » passait donc l'étape, et le refus n'arrivait qu'à l'envoi final —
+**sur un champ devenu invisible deux étapes plus tôt**. L'envoi semblait
+échouer sans raison.
+
+Deux corrections, et la seconde compte autant que la première : le format est
+désormais vérifié par le même motif que le serveur, et `onError` **ramène sur
+l'étape du premier champ fautif**. Sans cela, toute erreur serveur portant sur
+une étape antérieure resterait invisible — ce qui vaut pour les dates comme
+pour le nom, pas seulement pour le téléphone.
+
+**276 tests, 1384 assertions.**
