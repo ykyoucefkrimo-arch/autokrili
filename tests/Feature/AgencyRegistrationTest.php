@@ -163,3 +163,60 @@ it('inscrit un client avec le role client et sans verification d email', functio
         // Un client n'a pas a confirmer son adresse avant sa premiere reservation.
         ->and($user->hasVerifiedEmail())->toBeTrue();
 });
+
+/* --- Inscription depuis un compte deja connecte (2026-10-18) -------------- */
+
+/**
+ * Le bouton « Inscrire mon agence » paraissait mort.
+ *
+ * La route etait dans le groupe `guest`, qui reconduit tout utilisateur
+ * connecte vers son tableau de bord. Depuis l'arrivee de la connexion Google,
+ * beaucoup de visiteurs sont connectes : il fallait se deconnecter pour
+ * inscrire son agence, ce que personne ne devine.
+ */
+it('ouvre le formulaire a un client deja connecte', function () {
+    $client = User::factory()->create(['role' => User::ROLE_CLIENT]);
+
+    actingAs($client)->get(route('agency.register'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Auth/RegisterAgency')
+            ->where('compte.email', $client->email));
+});
+
+it('rattache l agence au compte connecte sans en creer un second', function () {
+    Notification::fake();
+
+    $client = User::factory()->create([
+        'role' => User::ROLE_CLIENT,
+        'email_verified_at' => now(),
+    ]);
+    $avant = User::count();
+
+    $donnees = validAgencyPayload($this->wilaya, $this->commune);
+    unset($donnees['email'], $donnees['password'], $donnees['password_confirmation']);
+
+    actingAs($client)->post(route('agency.register'), $donnees)
+        ->assertRedirect(route('agency.pending'));
+
+    expect(User::count())->toBe($avant)
+        ->and($client->fresh()->role)->toBe(User::ROLE_AGENCY)
+        ->and($client->fresh()->activeAgency()->status)->toBe(Agency::STATUS_PENDING);
+});
+
+it('refuse qu un compte connecte impose une autre adresse', function () {
+    $client = User::factory()->create(['role' => User::ROLE_CLIENT]);
+
+    // Sinon on pourrait inscrire une agence sous l'adresse d'un tiers tout en
+    // en gardant le controle.
+    actingAs($client)->post(route('agency.register'),
+        validAgencyPayload($this->wilaya, $this->commune) + ['email' => 'quelqu-un-dautre@test.dz']
+    )->assertSessionHasErrors('email');
+});
+
+it('repose chez elle une agence qui en a deja une', function () {
+    $agence = agencyOn();
+
+    actingAs($agence->user)->get(route('agency.register'))
+        ->assertRedirect(route('agency.dashboard'));
+});

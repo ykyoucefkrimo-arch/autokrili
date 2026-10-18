@@ -34,8 +34,21 @@ class RegisterAgencyRequest extends FormRequest
             'phone' => ['required', 'string', 'max:20', $this->algerianPhoneRule()],
             'whatsapp' => ['nullable', 'string', 'max:20', $this->algerianPhoneRule()],
 
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:150', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            /*
+             * Identifiants : exiges du visiteur, ignores du connecte.
+             *
+             * Depuis le 2026-10-18 un client peut inscrire son agence sans se
+             * deconnecter. Son compte EST le compte de l'agence ; lui
+             * redemander une adresse creerait un doublon, et un mot de passe
+             * n'aurait pas de sens pour quelqu'un arrive par Google, qui n'en
+             * a jamais choisi.
+             */
+            'email' => $this->user()
+                ? ['prohibited']
+                : ['required', 'string', 'lowercase', 'email', 'max:150', 'unique:'.User::class],
+            'password' => $this->user()
+                ? ['prohibited']
+                : ['required', 'confirmed', Password::defaults()],
 
             'description' => ['nullable', 'string', 'max:2000'],
 

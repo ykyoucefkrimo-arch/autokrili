@@ -11,6 +11,7 @@ use App\Notifications\AgencyRegistered;
 use App\Services\AgencyRegistrationService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
@@ -24,26 +25,47 @@ class AgencyRegistrationController extends Controller
     ) {
     }
 
-    public function create(): Response
+    public function create(Request $request): Response|RedirectResponse
     {
+        if ($dehors = $this->ecarteCeuxQuiEnOntDeja($request)) {
+            return $dehors;
+        }
+
         return Inertia::render('Auth/RegisterAgency', [
             // Communes ship with the wilayas: the form filters them in the
             // browser, which spares a round trip on every wilaya change.
             'wilayas' => $this->reference->wilayas(),
+            /*
+             * Le compte connecte, s'il y en a un. Le formulaire masque alors
+             * les champs d'identifiants : redemander une adresse et un mot de
+             * passe a quelqu'un d'identifie creerait un second compte pour la
+             * meme personne.
+             */
+            'compte' => $request->user()?->only(['name', 'email']),
         ]);
     }
 
     public function store(RegisterAgencyRequest $request): RedirectResponse
     {
+        if ($dehors = $this->ecarteCeuxQuiEnOntDeja($request)) {
+            return $dehors;
+        }
+
+        $proprietaire = $request->user();
+
         $agency = $this->registration->register(
             $request->validated(),
             $request->file('logo'),
             $request->file('trade_register_file'),
+            $proprietaire,
         );
 
         // Agencies must verify their email; the event triggers Laravel's own
-        // verification notification.
-        event(new Registered($agency->user));
+        // verification notification. Un compte deja verifie — celui arrive
+        // par Google, par exemple — n'a rien a reverifier.
+        if (! $agency->user->hasVerifiedEmail()) {
+            event(new Registered($agency->user));
+        }
 
         $agency->user->notify(new AgencyRegistered($agency));
         Notification::send(
@@ -51,8 +73,24 @@ class AgencyRegistrationController extends Controller
             new AgencyRegistered($agency, forAdmin: true)
         );
 
-        Auth::login($agency->user);
+        if (! $proprietaire) {
+            Auth::login($agency->user);
+        }
 
         return redirect()->route('agency.pending');
+    }
+
+    /**
+     * Une agence par compte.
+     *
+     * Celui qui en a deja une n'a rien a faire sur ce formulaire : on le
+     * repose chez lui plutot que de le laisser remplir trente champs pour
+     * une demande qui serait refusee a l'enregistrement.
+     */
+    private function ecarteCeuxQuiEnOntDeja(Request $request): ?RedirectResponse
+    {
+        return $request->user()?->activeAgency()
+            ? redirect()->route('agency.dashboard')
+            : null;
     }
 }
