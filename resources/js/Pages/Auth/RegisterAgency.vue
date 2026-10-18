@@ -5,8 +5,11 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { useCommunes } from '@/composables/useCommunes';
+import { useTranslations } from '@/composables/useTranslations';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+
+const { t } = useTranslations();
 
 const props = defineProps({
     wilayas: { type: Array, default: () => [] },

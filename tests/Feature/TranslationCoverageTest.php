@@ -83,3 +83,37 @@ it('n’accumule pas de traductions que plus personne n’utilise', function () 
     expect(count($orphans))->toBeLessThan(30,
         'Traductions probablement orphelines : '.implode(', ', $orphans));
 });
+
+/**
+ * Le garde-fou qui manquait.
+ *
+ * Le 2026-10-18, l'ecran d'inscription des agences est reste BLANC pendant
+ * une journee : le passage des libelles en `t()` avait oublie l'import du
+ * composable. `t is not a function`, le composant ne montait pas, et rien ne
+ * le signalait — les tests Inertia verifient les donnees envoyees, pas le
+ * rendu dans un navigateur, et la couverture des cles ci-dessus se contente
+ * de lire les chaines sans savoir si `t` existe.
+ *
+ * La page d'acquisition la plus importante du produit, invisible, sans une
+ * seule erreur serveur.
+ */
+it('n appelle jamais t() sans importer le composable', function () {
+    $fautifs = [];
+
+    foreach (Symfony\Component\Finder\Finder::create()
+        ->in(resource_path('js'))->files()->name('*.vue') as $fichier) {
+        $source = $fichier->getContents();
+
+        // `t('...')` precede d'autre chose qu'un identifiant ou un point,
+        // pour ne pas confondre avec `format(`, `$t(` ou `obj.t(`.
+        if (preg_match('/[^a-zA-Z0-9_$.]t\(\s*[\'"`]/', $source)
+            && ! str_contains($source, 'useTranslations')) {
+            $fautifs[] = $fichier->getRelativePathname();
+        }
+    }
+
+    expect($fautifs)->toBeEmpty(
+        'Ces composants appellent t() sans importer useTranslations, et resteront blancs : '
+        .implode(', ', $fautifs)
+    );
+});
