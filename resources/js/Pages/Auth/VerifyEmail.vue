@@ -3,6 +3,9 @@ import { computed } from 'vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { t } = useTranslations();
 
 const props = defineProps({
     status: {
@@ -23,13 +26,11 @@ const verificationLinkSent = computed(
 
 <template>
     <GuestLayout>
-        <Head title="Email Verification" />
+        <Head :title="t('Vérification de l’adresse')" />
 
         <div class="mb-4 text-sm text-gray-600">
-            Thanks for signing up! Before getting started, could you verify your
-            email address by clicking on the link we just emailed to you? If you
-            didn't receive the email, we will gladly send you another.
-        </div>
+            {{ t('Merci pour votre inscription. Avant de commencer, confirmez votre adresse e-mail en cliquant sur le lien que nous venons de vous envoyer. Si vous ne l’avez pas reçu, nous vous en enverrons un autre.') }}
+            </div>
 
         <div
             class="mb-4 text-sm font-medium text-green-600"
@@ -45,7 +46,7 @@ const verificationLinkSent = computed(
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Resend Verification Email
+                    {{ t('Renvoyer l’e-mail de vérification') }}
                 </PrimaryButton>
 
                 <Link
@@ -53,7 +54,7 @@ const verificationLinkSent = computed(
                     method="post"
                     as="button"
                     class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >Log Out</Link
+                    >{{ t('Se déconnecter') }}</Link
                 >
             </div>
         </form>

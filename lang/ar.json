@@ -124,5 +124,21 @@
     "Électrique": "كهربائي",
     "Continuer avec Google": "المتابعة باستخدام Google",
     "ou": "أو",
-    "Mon agence": "وكالتي"
+    "Mon agence": "وكالتي",
+    "Adresse e-mail": "البريد الإلكتروني",
+    "Cette partie du site est protégée. Confirmez votre mot de passe avant de continuer.": "هذا القسم محمي. يرجى تأكيد كلمة المرور قبل المتابعة.",
+    "Confirmer le mot de passe": "تأكيد كلمة المرور",
+    "Déjà inscrit ?": "لديك حساب بالفعل؟",
+    "Envoyer le lien de réinitialisation": "إرسال رابط إعادة التعيين",
+    "Inscription": "إنشاء حساب",
+    "Merci pour votre inscription. Avant de commencer, confirmez votre adresse e-mail en cliquant sur le lien que nous venons de vous envoyer. Si vous ne l’avez pas reçu, nous vous en enverrons un autre.": "شكرًا لتسجيلك. قبل البدء، يرجى تأكيد بريدك الإلكتروني عبر الرابط الذي أرسلناه لك. إن لم تستلمه، سنرسل لك رابطًا جديدًا.",
+    "Mot de passe": "كلمة المرور",
+    "Mot de passe oublié": "نسيت كلمة المرور",
+    "Mot de passe oublié ?": "نسيت كلمة المرور؟",
+    "Mot de passe oublié ? Indiquez votre adresse e-mail : nous vous enverrons un lien pour en choisir un nouveau.": "نسيت كلمة المرور؟ أدخل بريدك الإلكتروني وسنرسل لك رابطًا لاختيار كلمة مرور جديدة.",
+    "Réinitialiser le mot de passe": "إعادة تعيين كلمة المرور",
+    "Renvoyer l’e-mail de vérification": "إعادة إرسال رسالة التأكيد",
+    "Vérification de l’adresse": "تأكيد البريد الإلكتروني",
+    "Se souvenir de moi": "تذكرني",
+    "Se déconnecter": "تسجيل الخروج"
 }

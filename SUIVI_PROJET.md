@@ -958,3 +958,62 @@ qui pilotent Chrome correctement.
 colonne en base (`plans.badge_color`), pas une constante. Le violet du
 Platinium jure avec la charte — proposer `Silver #9D9DA6`, `Gold #D97706`,
 `Platinium #111113`.
+
+## 2026-10-18 — Connexion Google, écrans d'authentification traduits, avis de sécurité purgés
+
+### Connexion et inscription par compte Google
+
+Le marché visé est grand public et mobile : choisir un mot de passe au clavier
+d'un téléphone est la marche la plus haute du parcours d'inscription.
+**Gratuit** tant qu'on se limite aux champs `email` et `profile`, qui ne sont
+pas des portées sensibles et n'exigent donc aucune validation de Google.
+
+**Réservé aux clients.** L'inscription d'une agence collecte un registre de
+commerce et passe par la modération ; un compte créé en un clic contournerait
+la vérification que la plateforme promet. Une agence peut *se connecter* par
+Google, pas *se créer* ainsi.
+
+Trois décisions de rattachement, dans cet ordre : l'identifiant Google fait foi
+avant l'adresse — une adresse peut changer de propriétaire ; une adresse déjà
+connue est **rattachée** plutôt que refusée, puisque Google l'a vérifiée et
+qu'afficher « adresse déjà prise » à quelqu'un qui EST cette adresse n'a aucun
+sens ; sinon on crée un client déjà vérifié.
+
+`password` devient nullable : un faux mot de passe aléatoire serait une donnée
+morte qui ferait croire que le compte en a un.
+
+Les routes répondent **404** et le bouton reste masqué tant que les
+identifiants ne sont pas renseignés — un bouton qui mène à une erreur de Google
+est pire que son absence.
+
+*Deux pièges attrapés par les tests* : `google_id` absent de `$fillable`,
+écarté **en silence** par `create()` — le compte était créé sans lien vers
+Google, et un doublon serait apparu à la connexion suivante ; et
+`email_verified_at` qui n'est pas assignable en masse, volontairement, d'où
+`markEmailAsVerified()`.
+
+**Reste à faire** : créer les identifiants dans la console Google Cloud et
+déclarer les deux URI de retour (local et production). Au moindre écart,
+Google refuse avec `redirect_uri_mismatch` sans rien dire de plus.
+
+### Écrans d'authentification traduits
+
+Les six écrans étaient restés en anglais depuis Breeze — « Email »,
+« Password », « Log in », « Remember me » — sur un site dont tout le reste
+parle français et arabe. Tout passe par `t()`, avec les clés dans les deux
+dictionnaires.
+
+*À noter pour la prochaine fois* : les deux chaînes collées à leur balise sur
+une seule ligne (`>Remember me</span`, `>Log Out</Link`) ont échappé à la
+reprise automatique, et les libellés de bouton aussi. C'est le test de
+couverture des traductions du projet qui les a signalés — il a fait son
+travail deux fois.
+
+### Avis de sécurité
+
+`composer audit` signalait **5 avis sur 4 paquets**, dont un de sévérité haute
+(déni de service quadratique dans `league/commonmark`). Mise à jour ciblée de
+`laravel/framework`, `league/commonmark`, `symfony/http-foundation` et
+`symfony/yaml` : **plus aucun avis**.
+
+**243 tests, 1140 assertions.**
