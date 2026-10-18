@@ -229,10 +229,19 @@ const submitSearch = () => {
                                     class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
                             </label>
 
-                            <!-- `sm:col-span-2` : sur deux colonnes le bouton
-                                 se retrouvait seul sur une demi-ligne. -->
+                            <!--
+                                `sm:col-span-2` : sur deux colonnes le bouton
+                                se retrouvait seul sur une demi-ligne.
+
+                                `border border-transparent` + `py-2` : NE PAS
+                                retirer. Les champs font 38 px (20 de ligne,
+                                16 de marge interne, 2 de bordure) ; sans cette
+                                bordure il aurait fallu `py-2.5`, soit 40 px,
+                                et le bouton depassait de 2 px au-dessus de la
+                                rangee. Mesure, pas estime.
+                            -->
                             <button type="submit"
-                                class="self-end rounded-bouton bg-marque px-8 py-2.5 text-sm font-semibold text-encre-900 shadow-marque transition hover:bg-marque-400 sm:col-span-2 lg:col-span-1">
+                                class="self-end rounded-bouton border border-transparent bg-marque px-8 py-2 text-sm font-semibold text-encre-900 shadow-marque transition hover:bg-marque-400 sm:col-span-2 lg:col-span-1">
                                 {{ t('Rechercher') }}
                             </button>
                         </form>
