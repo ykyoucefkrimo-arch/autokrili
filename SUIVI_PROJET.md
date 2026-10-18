@@ -910,3 +910,51 @@ php artisan serve                   # http://localhost:8000
 npm run dev                         # assets, dans un second terminal
 php artisan test                    # suite Pest
 ```
+
+## 2026-10-18 — Identité visuelle : noir et ambre
+
+Avant : la configuration Tailwind de Breeze, sans la moindre couleur. Le site
+public en noir et blanc (`bg-gray-900` pour les boutons), les espaces agence et
+administration en indigo — l'indigo de Breeze, que personne n'avait choisi.
+Deux styles qui cohabitaient sans décision.
+
+**Charte posée dans `tailwind.config.js`**, en noms sémantiques et français :
+`encre` (le noir du favicon, décliné), `marque` (l'ambre), `creme` (le fond de
+page), plus `rounded-carte` / `rounded-bouton` et trois ombres. `bg-marque`
+plutôt que `bg-amber-500` : c'est ce qui permettra de changer la teinte un jour
+sans relire deux cents fichiers.
+
+**Bannière d'accueil** : photo d'une route vide dans un paysage algérien à
+l'heure dorée, produite par le skill `graphiste`. 3,4 Mo à la génération,
+déclinée en six fichiers — 37 Ko sur téléphone en WebP. Servie par un `<img>`
+avec `srcset`, pas un `background-image` : c'est le seul moyen d'avoir des
+tailles responsives.
+
+Deux dégradés et **aucun voile uniforme** : le premier jet posait un voile à
+45 % sur toute la surface, le contraste était bon mais la route disparaissait —
+on avait payé une photo pour afficher du noir.
+
+**`VehicleCard`** : une URL de photo cassée affichait l'icône d'image brisée du
+navigateur avec le texte alternatif en travers de la carte. `@error` bascule
+désormais sur le repli « Photo à venir » qui existait déjà pour le cas « aucune
+photo ». Ajout de `min-w-0` / `shrink-0` sur la ligne de prix, pour que
+`truncate` tronque au lieu d'imposer sa largeur.
+
+### Une leçon qui a coûté trois correctifs
+
+`chrome --headless --screenshot --window-size=390,900` **ne règle pas la
+largeur de mise en page** : la page est composée plus large puis rognée. J'y ai
+vu un débordement horizontal sur téléphone et corrigé trois fois de suite
+l'en-tête, le titre, puis la carte. Mesure faite ensuite par le protocole
+DevTools : **viewport 390, document 390, débordement nul.** Il n'y avait jamais
+rien eu.
+
+Les trois modifications ont été conservées — elles sont défendables en
+elles-mêmes — mais la méthode est désormais écrite dans le skill `design-web`,
+avec deux outils sans dépendance (`mesurer-debordement.mjs`, `capturer.mjs`)
+qui pilotent Chrome correctement.
+
+**À faire côté administration** : les couleurs de badge des formules sont une
+colonne en base (`plans.badge_color`), pas une constante. Le violet du
+Platinium jure avec la charte — proposer `Silver #9D9DA6`, `Gold #D97706`,
+`Platinium #111113`.
