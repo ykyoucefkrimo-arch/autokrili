@@ -1017,3 +1017,34 @@ travail deux fois.
 `symfony/yaml` : **plus aucun avis**.
 
 **243 tests, 1140 assertions.**
+
+### Mise en ligne du 18 octobre 2026
+
+Tout ce qui précède vivait sur la machine de développement. La production
+n'avait reçu que les deux lignes `GOOGLE_*` du `.env`, ce qui ne pouvait rien
+produire : ni la colonne en base, ni le contrôleur, ni le bouton compilé.
+
+**L'ordre compte.** La base d'abord, le code ensuite. Si le code arrive avant
+la colonne, toute tentative de connexion Google plante dans l'intervalle.
+
+1. Sauvegarde de la base (`~/sauvegardes/autokrili-<date>.sql.gz`)
+2. `git pull --ff-only origin demo` — la branche `demo` est celle qui **commet
+   `public/build`**, que `main` ignore ; c'est elle que le serveur suit
+3. `composer install --no-dev --optimize-autoloader`
+4. `artisan migrate --force` → la colonne `google_id`
+5. `rsync` de `public/build` et `public/images` vers `public_html`
+6. `config:clear`, `route:clear`, `view:clear`
+
+**Vérifié en ligne** : `/auth/google` renvoie un 302 vers
+`accounts.google.com` avec les bons `scope` et `redirect_uri` ; `/login`
+expose `googleAuth: true` ; les six fichiers de bannière et les assets
+compilés répondent en 200.
+
+*Fausse alerte à ne pas rejouer* : les `.jpg` téléchargées ne font pas la
+taille des fichiers sur disque, alors que les `.webp` correspondent à l'octet
+près. Ce n'est pas un défaut de transfert — LiteSpeed recompresse les JPEG à
+la volée. Comparer les fichiers sur disque, pas les tailles de réponse.
+
+**Ce qui bloque encore le produit** : `MAIL_MAILER=file` en production. Rien
+ne part. L'approbation d'une agence et les notifications de réservation
+n'arrivent donc jamais à leur destinataire.
