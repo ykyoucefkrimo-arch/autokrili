@@ -51,8 +51,22 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'suspended_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Compte suspendu : la connexion lui est refusee, et une session ouverte
+     * est fermee au prochain clic (voir RefuseUnCompteSuspendu).
+     *
+     * `suspended_at` n'est PAS dans `$fillable`, volontairement : fermer un
+     * compte passe par UserModerationService, qui journalise. Une assignation
+     * en masse y echapperait.
+     */
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
     }
 
     /** The agency this user owns, if any. */

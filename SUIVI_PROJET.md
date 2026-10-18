@@ -1175,3 +1175,42 @@ ne doit rien écrire sur le disque. Le champ n'est plus validé, donc plus
 stocké ; le vérifier évite qu'une réintroduction silencieuse passe inaperçue.
 
 **256 tests, 1264 assertions.**
+
+### Les comptes se modèrent aussi
+
+Demandé le 2026-10-18. On modérait des agences et des annonces, jamais des
+personnes : un client qui multiplie les fausses réservations, ou un compte
+visiblement compromis, n'avait aucun frein.
+
+`/admin/utilisateurs` liste tous les comptes — recherche sur le nom, l'adresse
+ou le téléphone, filtres par rôle et par état — et chaque ligne dit ce qu'il
+faut pour décider : comment la personne est entrée (mot de passe ou Google),
+si son adresse est vérifiée, combien de réservations elle porte, et l'agence
+qu'elle tient le cas échéant. Les comptes fermés remontent en tête, puisque
+c'est la liste qu'on vient relire.
+
+**Deux gestes, pas trois.** Suspendre et rouvrir. Pas de suppression : les
+réservations portent `client_id`, et effacer un client effacerait l'historique
+des agences qui l'ont servi. Pas de changement de rôle non plus — passer
+quelqu'un administrateur d'un clic est un pouvoir qui se donne en base,
+lentement.
+
+**Ce qu'une suspension ferme vraiment.** Refuser la connexion ne suffit pas :
+une session déjà ouverte survivrait jusqu'à l'expiration du cookie, et la
+suspension ne prendrait effet que pour qui se déconnecte de lui-même. Les
+sessions en base sont donc effacées, et un intergiciel global referme le
+reste — « se souvenir de moi », autre pilote de session, fenêtre entre deux
+requêtes. La porte Google est fermée aussi : s'y reconnecter serait la porte
+de derrière de la modération.
+
+*Le message dit pourquoi.* Un mot de passe correct suivi d'`auth.failed`
+enverrait la personne réinitialiser un mot de passe qui fonctionne. Le motif
+saisi par l'administrateur lui est montré, d'où le minimum de dix caractères :
+« abus » n'explique rien.
+
+**Deux comptes qu'on ne ferme pas**, et l'interface n'en affiche même pas le
+bouton : le sien — se suspendre soi-même coupe sa propre session dans la
+seconde — et tout autre administrateur, où à deux comptes le premier qui
+clique gagne.
+
+**268 tests, 1338 assertions.**

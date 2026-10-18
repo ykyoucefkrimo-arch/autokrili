@@ -50,6 +50,23 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        /*
+         * Compte suspendu : on referme aussitot. Le mot de passe etait bon,
+         * ce n'est donc pas `auth.failed` qu'il faut dire — laisser croire a
+         * une erreur de saisie enverrait la personne reinitialiser un mot de
+         * passe qui fonctionne.
+         */
+        if (Auth::user()->isSuspended()) {
+            $motif = Auth::user()->suspension_reason;
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => $motif
+                    ? __('Votre compte a été suspendu : :motif', ['motif' => $motif])
+                    : __('Votre compte a été suspendu.'),
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

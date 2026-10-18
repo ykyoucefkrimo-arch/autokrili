@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             // Avant Inertia : c'est lui qui partage la locale avec le navigateur.
+            // Avant tout le reste : un compte suspendu ne doit pas meme
+            // atteindre la page qu'il demandait.
+            \App\Http\Middleware\RefuseUnCompteSuspendu::class,
             \App\Http\Middleware\SetLocale::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\AgencyController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\MailboxController;
@@ -230,6 +231,16 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])->prefix('admin')->name('ad
     | dediee plutot que par la route unitaire : approuver vingt annonces ne
     | doit pas dependre de vingt requetes qui peuvent echouer a mi-chemin.
     */
+    /*
+    | Les comptes. Deux gestes seulement : suspendre et rouvrir. Pas de
+    | suppression — les reservations portent `client_id`.
+    */
+    Route::get('utilisateurs', [AdminUserController::class, 'index'])->name('users.index');
+    Route::post('utilisateurs/{user}/suspendre', [AdminUserController::class, 'suspend'])
+        ->name('users.suspend');
+    Route::post('utilisateurs/{user}/reouvrir', [AdminUserController::class, 'reinstate'])
+        ->name('users.reinstate');
+
     Route::get('annonces', [AdminVehicleController::class, 'index'])->name('vehicles.index');
     Route::post('annonces/lot', [AdminVehicleController::class, 'bulk'])->name('vehicles.bulk');
     Route::get('annonces/{vehicle}', [AdminVehicleController::class, 'show'])->name('vehicles.show');

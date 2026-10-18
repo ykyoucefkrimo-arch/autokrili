@@ -87,6 +87,16 @@ class AuthGoogleController extends Controller
 
         $utilisateur = $this->trouverOuCreer($profil->getId(), $courriel, $profil->getName());
 
+        // Un compte suspendu ne se rouvre pas par Google : ce serait la porte
+        // de derriere de la moderation.
+        if ($utilisateur->isSuspended()) {
+            return redirect()->route('login')->withErrors([
+                'email' => $utilisateur->suspension_reason
+                    ? __('Votre compte a été suspendu : :motif', ['motif' => $utilisateur->suspension_reason])
+                    : __('Votre compte a été suspendu.'),
+            ]);
+        }
+
         Auth::login($utilisateur, remember: true);
 
         /*
