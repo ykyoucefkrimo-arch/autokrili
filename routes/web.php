@@ -97,6 +97,12 @@ Route::post('vehicule/{vehicle}/reserver', [PublicBookingController::class, 'sto
     ->name('bookings.store');
 
 Route::middleware('auth')->group(function () {
+    // Reprise d'une reservation mise de cote parce que l'adresse donnee avait
+    // deja un compte. Declaree AVANT la confirmation : sans cela « reprendre »
+    // serait lu comme une reference de reservation.
+    Route::get('reservation/reprendre', [PublicBookingController::class, 'resume'])
+        ->name('bookings.resume');
+
     Route::get('reservation/{booking:booking_reference}', [PublicBookingController::class, 'confirmation'])
         ->name('bookings.confirmation');
 

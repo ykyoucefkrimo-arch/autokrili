@@ -13,6 +13,7 @@ use App\Services\ReferenceDataService;
 use App\Services\PublicListingService;
 use App\Services\StatsService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -78,6 +79,7 @@ class CatalogController extends Controller
 
         $filters['wilaya_id'] = $wilaya?->id ?? ($filters['wilaya_id'] ?? null);
         $filters['commune_id'] = $commune?->id ?? ($filters['commune_id'] ?? null);
+        $filters += $this->sejour($request);
 
         $query = $this->listings->filter($this->listings->query(), $filters);
         $query = $this->listings->sort($query, $filters, $request->input('sort'));
@@ -101,6 +103,39 @@ class CatalogController extends Controller
     }
 
     /** The vehicle page. `{id}-{slug}` per specification 7.2. */
+    /**
+     * Les dates du sejour, lues dans l'URL.
+     *
+     * Posee le 2026-10-18 : l'accueil demande desormais les dates, comme le
+     * font les grands loueurs, et elles suivent le visiteur jusqu'au
+     * formulaire de reservation.
+     *
+     * **On ignore en silence ce qui ne tient pas debout** — un depart apres
+     * le retour, une date passee, du texte a la place d'une date. Ces URL
+     * arrivent de liens vieillis et de robots d'indexation ; leur repondre
+     * par une erreur de validation transformerait une recherche en impasse,
+     * alors que la liste complete est une reponse parfaitement utile.
+     *
+     * @return array{start: ?string, end: ?string}
+     */
+    private function sejour(Request $request): array
+    {
+        $vide = ['start' => null, 'end' => null];
+
+        try {
+            $debut = $request->filled('start') ? Carbon::parse($request->query('start'))->startOfDay() : null;
+            $fin = $request->filled('end') ? Carbon::parse($request->query('end'))->startOfDay() : null;
+        } catch (\Throwable) {
+            return $vide;
+        }
+
+        if (! $debut || ! $fin || $fin->lt($debut) || $debut->lt(Carbon::today())) {
+            return $vide;
+        }
+
+        return ['start' => $debut->toDateString(), 'end' => $fin->toDateString()];
+    }
+
     public function show(Request $request, Vehicle $vehicle): Response
     {
         // Only what the public may legitimately see: a listing pulled from the
@@ -119,6 +154,11 @@ class CatalogController extends Controller
         $this->stats->recordView($vehicle);
 
         return Inertia::render('Public/Vehicle', [
+            // Le sejour choisi a l'accueil ou dans la recherche. Il ne sert
+            // qu'a etre repasse au formulaire de reservation, qui l'attend
+            // deja sous `start` et `end` : sans cela le visiteur ressaisirait
+            // des dates qu'il vient de donner.
+            'stay' => $this->sejour($request),
             'vehicle' => [
                 'id' => $vehicle->id,
                 'slug' => $vehicle->slug,

@@ -4,7 +4,7 @@ import VehicleCard from '@/Components/VehicleCard.vue';
 import { useTranslations } from '@/composables/useTranslations';
 import { useCommunes } from '@/composables/useCommunes';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 const props = defineProps({
     canLogin: Boolean,
@@ -27,6 +27,27 @@ const CATEGORY_LABELS = {
 const wilayaId = ref('');
 const communeId = ref('');
 
+/*
+ * Les dates, posees le 2026-10-18.
+ *
+ * Les grands loueurs les demandent des la premiere page, et ce n'est pas une
+ * coquetterie : sans dates, la liste montre des voitures deja prises, et le
+ * visiteur ne l'apprend qu'au bout du tunnel. Avec elles, tout ce qu'il voit
+ * est reservable.
+ *
+ * Rien n'est obligatoire pour autant. Quelqu'un qui veut d'abord regarder les
+ * prix cherche sans dates, et la liste complete lui repond.
+ */
+const aujourdhui = new Date().toISOString().slice(0, 10);
+const depart = ref('');
+const retour = ref('');
+
+// Un retour anterieur au depart n'a pas de sens : on le pousse, sans jamais
+// bloquer la saisie — corriger sous les doigts de quelqu'un est detestable.
+watch(depart, (valeur) => {
+    if (valeur && retour.value && retour.value < valeur) retour.value = valeur;
+});
+
 // Les communes arrivent par le point d'acces dedie quand la wilaya change :
 // 1541 communes livrees avec la page d'accueil seraient payees par chaque
 // visiteur, pour une liste que la plupart ne deroulent jamais.
@@ -37,15 +58,21 @@ const { communes, loading: loadingCommunes } = useCommunes(wilayaId, props.searc
 const submitSearch = () => {
     const wilaya = props.searchWilayas.find((w) => w.id === Number(wilayaId.value));
 
+    // Les dates restent en parametres de requete : le lieu fait la page qu'un
+    // moteur indexe, un sejour precis n'a rien a y faire.
+    const sejour = depart.value && retour.value
+        ? { start: depart.value, end: retour.value }
+        : {};
+
     // L'URL porte le lieu, pas des paramètres : c'est la forme indexable
     // demandée au 7.2, et celle qu'on peut envoyer par WhatsApp.
-    if (!wilaya) return router.get(route('search'));
+    if (!wilaya) return router.get(route('search'), sejour);
 
     const commune = communes.value.find((c) => c.id === Number(communeId.value));
 
     router.get(commune
         ? route('search.commune', { wilaya: wilaya.slug ?? wilaya.id, commune: commune.slug ?? commune.id })
-        : route('search.wilaya', { wilaya: wilaya.slug ?? wilaya.id }));
+        : route('search.wilaya', { wilaya: wilaya.slug ?? wilaya.id }), sejour);
 };
 </script>
 
@@ -153,29 +180,64 @@ const submitSearch = () => {
                     <!-- Le formulaire monte SUR l'image, en carte claire : c'est
                          l'action principale, elle doit etre le point le plus
                          lumineux de l'ecran. -->
-                    <div class="mt-10 max-w-3xl rounded-carte bg-white p-4 shadow-carte-survol sm:p-5">
-                        <form @submit.prevent="submitSearch" class="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-                            <select v-model="wilayaId"
-                                class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque">
-                                <option value="">{{ t('Toutes les wilayas') }}</option>
-                                <option v-for="w in searchWilayas" :key="w.id" :value="w.id">
-                                    {{ w.code }} — {{ w.name_fr }}
-                                </option>
-                            </select>
-                            <select v-model="communeId" :disabled="!communes.length || loadingCommunes"
-                                class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque disabled:bg-encre-50">
-                                <option value="">
-                                    {{ loadingCommunes ? t('Chargement…') : t('Toutes les communes') }}
-                                </option>
-                                <option v-for="c in communes" :key="c.id" :value="c.id">{{ c.name_fr }}</option>
-                            </select>
+                    <div class="mt-10 max-w-3xl rounded-carte bg-white p-4 shadow-carte-survol sm:p-5 lg:max-w-4xl">
+                        <form @submit.prevent="submitSearch" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto_auto]">
+                            <!-- Chaque champ porte son libelle : sans eux les
+                                 listes flottaient plus haut que les dates, et
+                                 la rangee partait de travers. -->
+                            <label class="flex flex-col text-left">
+                                <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
+                                    {{ t('Wilaya') }}
+                                </span>
+                                <select v-model="wilayaId"
+                                    class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque">
+                                    <option value="">{{ t('Toutes les wilayas') }}</option>
+                                    <option v-for="w in searchWilayas" :key="w.id" :value="w.id">
+                                        {{ w.code }} — {{ w.name_fr }}
+                                    </option>
+                                </select>
+                            </label>
+                            <label class="flex flex-col text-left">
+                                <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
+                                    {{ t('Commune') }}
+                                </span>
+                                <select v-model="communeId" :disabled="!communes.length || loadingCommunes"
+                                    class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque disabled:bg-encre-50">
+                                    <option value="">
+                                        {{ loadingCommunes ? t('Chargement…') : t('Toutes les communes') }}
+                                    </option>
+                                    <option v-for="c in communes" :key="c.id" :value="c.id">{{ c.name_fr }}</option>
+                                </select>
+                            </label>
+
+                            <!-- Les champs natifs ouvrent le selecteur du
+                                 telephone, celui que le visiteur connait deja.
+                                 `min` empeche une date passee sans message
+                                 d'erreur a lire. -->
+                            <label class="flex flex-col text-left">
+                                <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
+                                    {{ t('Départ') }}
+                                </span>
+                                <input v-model="depart" type="date" :min="aujourdhui"
+                                    class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
+                            </label>
+                            <label class="flex flex-col text-left">
+                                <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
+                                    {{ t('Retour') }}
+                                </span>
+                                <input v-model="retour" type="date" :min="depart || aujourdhui"
+                                    class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
+                            </label>
+
+                            <!-- `sm:col-span-2` : sur deux colonnes le bouton
+                                 se retrouvait seul sur une demi-ligne. -->
                             <button type="submit"
-                                class="rounded-bouton bg-marque px-8 py-2.5 text-sm font-semibold text-encre-900 shadow-marque transition hover:bg-marque-400">
+                                class="self-end rounded-bouton bg-marque px-8 py-2.5 text-sm font-semibold text-encre-900 shadow-marque transition hover:bg-marque-400 sm:col-span-2 lg:col-span-1">
                                 {{ t('Rechercher') }}
                             </button>
                         </form>
                         <p class="mt-2.5 text-left text-xs text-encre-400">
-                            Les dates de location se choisissent sur la fiche du véhicule.
+                            {{ t('Indiquez vos dates pour ne voir que les véhicules libres. Sans dates, tout le catalogue s’affiche.') }}
                         </p>
                     </div>
                 </div>

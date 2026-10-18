@@ -1018,62 +1018,52 @@ travail deux fois.
 
 **243 tests, 1140 assertions.**
 
-### Mise en ligne du 18 octobre 2026
+### Le séjour commence à l'accueil
 
-Tout ce qui précède vivait sur la machine de développement. La production
-n'avait reçu que les deux lignes `GOOGLE_*` du `.env`, ce qui ne pouvait rien
-produire : ni la colonne en base, ni le contrôleur, ni le bouton compilé.
+Jusqu'ici l'accueil ne demandait que le lieu, et une mention sous le
+formulaire renvoyait les dates à la fiche du véhicule. Conséquence : la liste
+montrait des voitures déjà prises, et le visiteur ne l'apprenait qu'au bout du
+tunnel. Les grands loueurs demandent les dates d'abord — ce n'est pas une
+coquetterie, c'est ce qui rend réservable tout ce qui s'affiche.
 
-**L'ordre compte.** La base d'abord, le code ensuite. Si le code arrive avant
-la colonne, toute tentative de connexion Google plante dans l'intervalle.
+Les dates traversent désormais la chaîne entière : accueil → recherche →
+fiche → formulaire, qui les attendait déjà sous `start` et `end`. Rien n'est
+obligatoire : sans dates, le catalogue complet répond, parce que quelqu'un qui
+compare les prix n'a pas encore de dates.
 
-1. Sauvegarde de la base (`~/sauvegardes/autokrili-<date>.sql.gz`)
-2. `git pull --ff-only origin demo` — la branche `demo` est celle qui **commet
-   `public/build`**, que `main` ignore ; c'est elle que le serveur suit
-3. `composer install --no-dev --optimize-autoloader`
-4. `artisan migrate --force` → la colonne `google_id`
-5. `rsync` de `public/build` et `public/images` vers `public_html`
-6. `config:clear`, `route:clear`, `view:clear`
+**Deux décisions à ne pas défaire.**
 
-**Vérifié en ligne** : `/auth/google` renvoie un 302 vers
-`accounts.google.com` avec les bons `scope` et `redirect_uri` ; `/login`
-expose `googleAuth: true` ; les six fichiers de bannière et les assets
-compilés répondent en 200.
+Un séjour invalide est **ignoré en silence** — départ après le retour, date
+passée, texte à la place d'une date. Ces URL viennent de liens vieillis et de
+robots d'indexation ; répondre par une erreur de validation transformerait une
+recherche en impasse alors que la liste complète est une réponse utile.
 
-*Fausse alerte à ne pas rejouer* : les `.jpg` téléchargées ne font pas la
-taille des fichiers sur disque, alors que les `.webp` correspondent à l'octet
-près. Ce n'est pas un défaut de transfert — LiteSpeed recompresse les JPEG à
-la volée. Comparer les fichiers sur disque, pas les tailles de réponse.
+La disponibilité d'une **liste** se calcule en deux temps, pas en SQL. La
+marge de nettoyage appartient à l'agence, et l'appliquer en requête
+demanderait de l'arithmétique de dates différente sous SQLite (les tests) et
+sous MySQL (la production). On ratisse donc large avec la marge la plus
+grande, puis on tranche en PHP avec celle de chaque agence.
 
-**Ce qui bloque encore le produit** : `MAIL_MAILER=file` en production. Rien
-ne part. L'approbation d'une agence et les notifications de réservation
-n'arrivent donc jamais à leur destinataire.
+### La prise de session par le formulaire de réservation
 
-### Le 404 après connexion Google
+Trouvée en lisant le tunnel, pas cherchée. **Elle était grave.**
 
-Premier essai en production : la connexion réussit, le compte se crée — et
-l'écran affiche « 404 NOT FOUND ». Les journaux étaient muets, et le compte
-bien présent en base. La connexion n'était donc pas en cause : la redirection
-qui la suit l'était.
+`findOrCreateClient()` cherchait le client **par adresse e-mail**, et `store()`
+connectait le visiteur au compte trouvé. Taper l'adresse de quelqu'un d'autre
+dans le formulaire de réservation ouvrait donc sa session, sans mot de passe
+et sans trace. La recherche ne filtrait pas sur le rôle : `admin@autokrili.dz`
+y donnait accès à l'administration. Le site était en ligne.
 
-**Le mécanisme.** Un visiteur ouvre `/agence`. L'intergiciel `auth` retient
-l'adresse sous `url.intended` et le renvoie se connecter. Il choisit Google,
-un compte client se crée, et `redirect()->intended()` le repose exactement où
-il voulait aller — sur une page que son rôle ne peut pas voir. Or `/admin` et
-`/agence` répondent **404 et non 403**, délibérément : l'existence du back
-office ne se confirme pas à un inconnu. L'intention retenue était un piège.
+La correction est celle que demandait le propriétaire par ailleurs : **on
+compose son séjour en visiteur, on s'identifie au moment de confirmer.** Si
+l'adresse a déjà un compte, la réservation est mise de côté en session,
+`url.intended` pointe sur `bookings.resume`, et elle est créée telle quelle
+après la connexion. `resume()` vérifie que l'adresse du compte connecté est
+bien celle de la demande — sans quoi il suffirait de commencer une réservation
+au nom d'un autre puis de se connecter chez soi pour se l'approprier.
 
-`intended()` ne vérifie rien, et c'est normal : il ne peut pas savoir. Le
-filtre manquait, et il manquait **aussi à la connexion par mot de passe** —
-même ligne, même défaut, découvert en cherchant celui-ci.
+Une adresse inconnue continue de créer le compte et de connecter : ce compte
+vient de naître pour cette adresse, il ne donne accès à rien qui existait
+avant.
 
-D'où `App\Support\ApresConnexion`, seul endroit où cette décision se prend
-désormais. Elle écarte une intention qui vise un espace réservé, et au passage
-une intention vers un autre domaine — `intended()` l'aurait suivie, ce qui est
-précisément comment on fait passer une page d'hameçonnage pour la nôtre.
-
-*Piège rencontré en l'écrivant* : `blank(false)` vaut **false**. Laravel ne
-considère jamais un booléen comme vide, donc `blank($user->isAdmin())` laissait
-passer tout le monde. Négation simple.
-
-**249 tests, 1153 assertions.**
+**251 tests, 1237 assertions.**

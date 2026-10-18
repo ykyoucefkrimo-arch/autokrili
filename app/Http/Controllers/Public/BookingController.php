@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\BookingRequest;
 use App\Models\Agency;
 use App\Models\Booking;
+use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\AvailabilityService;
 use App\Services\BookingService;
@@ -105,23 +106,102 @@ class BookingController extends Controller
         ] + $quote);
     }
 
+    public const EN_ATTENTE = 'reservation.en_attente';
+
     public function store(BookingRequest $request, Vehicle $vehicle): RedirectResponse
     {
         $this->assertBookable($vehicle);
 
+        $donnees = $request->validated();
+
+        /*
+         * L'adresse donnee appartient deja a quelqu'un : on s'arrete ici.
+         *
+         * Faille trouvee le 2026-10-18, et elle etait grave. Le service
+         * cherchait le client PAR ADRESSE, et ce controleur connectait le
+         * visiteur au compte trouve. Taper l'adresse d'un autre dans le
+         * formulaire ouvrait donc sa session — celle de l'administrateur
+         * comprise, dont l'adresse se devine.
+         *
+         * La reservation est mise de cote, pas perdue, et reprise telle quelle
+         * apres la connexion. C'est le parcours des grands loueurs : on
+         * compose son sejour en visiteur, on s'identifie au moment de
+         * confirmer.
+         */
+        if (! $request->user() && $this->adresseDejaPrise($donnees['client_email'] ?? null)) {
+            $request->session()->put(self::EN_ATTENTE, [
+                'vehicle_id' => $vehicle->id,
+                'donnees' => $donnees,
+            ]);
+            $request->session()->put('url.intended', route('bookings.resume'));
+
+            return redirect()->route('login')->with(
+                'status',
+                __('Un compte existe déjà avec cette adresse. Connectez-vous pour confirmer votre réservation.')
+            );
+        }
+
         try {
-            $booking = $this->bookings->request($vehicle, $request->validated(), $request->user());
+            $booking = $this->bookings->request($vehicle, $donnees, $request->user());
         } catch (RuntimeException $e) {
             return back()->withInput()->withErrors(['availability' => $e->getMessage()]);
         }
 
-        // Signing the client in at this point spares them a password they have
-        // not chosen yet, and lands them straight on their booking.
+        // Le compte vient d'etre cree pour cette adresse-la : le connecter ne
+        // donne acces a rien qui existait avant, et lui epargne un mot de
+        // passe qu'il n'a pas encore choisi.
         if (! $request->user() && $booking->client) {
             Auth::login($booking->client);
         }
 
         return redirect()->route('bookings.confirmation', $booking->booking_reference);
+    }
+
+    /**
+     * Reprend la reservation mise de cote, une fois la personne identifiee.
+     *
+     * Le controle qui compte est celui de l'adresse : se connecter avec un
+     * autre compte ne doit pas permettre de recuperer la reservation d'un
+     * tiers. En cas d'ecart on jette la demande plutot que de la rattacher au
+     * mauvais dossier.
+     */
+    public function resume(Request $request): RedirectResponse
+    {
+        $attente = $request->session()->pull(self::EN_ATTENTE);
+
+        if (! $attente) {
+            return redirect()->route('search');
+        }
+
+        $vehicle = Vehicle::find($attente['vehicle_id']);
+        $donnees = $attente['donnees'];
+        $voulue = mb_strtolower((string) ($donnees['client_email'] ?? ''));
+
+        if (! $vehicle || ! hash_equals($voulue, mb_strtolower((string) $request->user()->email))) {
+            return redirect()->route('search')
+                ->withErrors(['client_email' => __('Cette réservation a été commencée avec une autre adresse.')]);
+        }
+
+        $this->assertBookable($vehicle);
+
+        try {
+            $booking = $this->bookings->request($vehicle, $donnees, $request->user());
+        } catch (RuntimeException $e) {
+            // Le temps de se connecter, quelqu'un a pu prendre le creneau.
+            return redirect()->route('bookings.create', [
+                'vehicle' => $vehicle->id,
+                'start' => $donnees['start_date'] ?? null,
+                'end' => $donnees['end_date'] ?? null,
+            ])->withErrors(['availability' => $e->getMessage()]);
+        }
+
+        return redirect()->route('bookings.confirmation', $booking->booking_reference);
+    }
+
+    /** Une adresse deja rattachee a un compte, quel que soit son role. */
+    private function adresseDejaPrise(?string $courriel): bool
+    {
+        return filled($courriel) && User::where('email', $courriel)->exists();
     }
 
     public function confirmation(Request $request, Booking $booking): Response

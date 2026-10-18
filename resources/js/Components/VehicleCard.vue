@@ -1,13 +1,24 @@
 <script setup>
 import { useTranslations } from '@/composables/useTranslations';
 import { Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const { t } = useTranslations();
 
-defineProps({
+const props = defineProps({
     vehicle: { type: Object, required: true },
+    // Le sejour choisi en amont. La carte ne l'affiche pas, elle le TRANSPORTE :
+    // sans cela le visiteur redonnerait ses dates sur la fiche, alors qu'il
+    // vient de les saisir.
+    start: { type: String, default: '' },
+    end: { type: String, default: '' },
 });
+
+const lien = computed(() => route('vehicle.show', {
+    vehicle: props.vehicle.id,
+    slug: props.vehicle.slug,
+    ...(props.start && props.end ? { start: props.start, end: props.end } : {}),
+}));
 
 const LABELS = {
     citadine: 'Citadine', berline: 'Berline', suv: 'SUV', utilitaire: 'Utilitaire',
@@ -23,7 +34,7 @@ const photoCassee = ref(false);
 </script>
 
 <template>
-    <Link :href="route('vehicle.show', { vehicle: vehicle.id, slug: vehicle.slug })"
+    <Link :href="lien"
         class="group flex flex-col overflow-hidden rounded-carte border border-encre-100 bg-white shadow-carte transition hover:-translate-y-0.5 hover:border-marque-200 hover:shadow-carte-survol">
         <div class="relative aspect-[4/3] overflow-hidden bg-creme-100">
             <!--

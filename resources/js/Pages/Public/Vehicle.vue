@@ -10,7 +10,14 @@ const props = defineProps({
     vehicle: { type: Object, required: true },
     similar: { type: Array, default: () => [] },
     structuredData: { type: Object, default: () => ({}) },
+    stay: { type: Object, default: () => ({ start: null, end: null }) },
 });
+
+// Les dates suivent jusqu'au formulaire, qui les attend sous `start`/`end`.
+const lienReservation = computed(() => route('bookings.create', {
+    vehicle: props.vehicle.id,
+    ...(props.stay?.start && props.stay?.end ? { start: props.stay.start, end: props.stay.end } : {}),
+}));
 
 const LABELS = {
     citadine: 'Citadine', berline: 'Berline', suv: 'SUV', utilitaire: 'Utilitaire',
@@ -179,7 +186,7 @@ const whatsappLink = computed(() => {
                         </p>
 
                         <div class="mt-6 space-y-2">
-                            <Link :href="route('bookings.create', vehicle.id)"
+                            <Link :href="lienReservation"
                                 class="block w-full rounded-md bg-gray-900 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-gray-800">
                                 {{ t('Réserver ce véhicule') }}
                             </Link>
