@@ -173,3 +173,96 @@ it('ne met en avant sur l’accueil que les formules qui paient cet emplacement'
         ->has('featured', 1)
         ->where('featured.0.id', $featured->id));
 });
+
+/* --- Les dates du sejour (2026-10-18) ------------------------------------- */
+
+/**
+ * Depuis que l'accueil demande les dates, la liste ne doit plus montrer une
+ * voiture que la fiche refusera deux ecrans plus loin.
+ */
+it('ecarte de la recherche un vehicule deja pris sur la periode', function () {
+    $agence = agencyOn(Plan::GOLD);
+    $agence->update(['buffer_hours' => 0]);
+
+    $libre = publishedVehicle($agence);
+    $pris = publishedVehicle($agence);
+
+    $pris->bookings()->create([
+        'booking_reference' => 'DZ-2026-00001',
+        'agency_id' => $agence->id,
+        'start_date' => now()->addDays(5)->toDateString(),
+        'end_date' => now()->addDays(9)->toDateString(),
+        'total_days' => 5,
+        'status' => App\Models\Booking::STATUS_CONFIRMED,
+        'client_name' => 'Yacine', 'client_phone' => '0555112233',
+        'daily_price_dzd' => 4200, 'total_price_dzd' => 21000,
+    ]);
+
+    get(route('search', ['start' => now()->addDays(6)->toDateString(),
+        'end' => now()->addDays(7)->toDateString()]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('vehicles.data', 1)
+            ->where('vehicles.data.0.id', $libre->id)
+            ->where('filters.start', now()->addDays(6)->toDateString()));
+});
+
+it('compte la marge de nettoyage de l agence dans la disponibilite', function () {
+    $agence = agencyOn(Plan::GOLD);
+    // Quatre heures de remise en etat occupent quand meme la journee : la
+    // voiture ne peut pas etre remise a deux clients le meme jour.
+    $agence->update(['buffer_hours' => 4]);
+
+    $vehicule = publishedVehicle($agence);
+    $vehicule->bookings()->create([
+        'booking_reference' => 'DZ-2026-00002',
+        'agency_id' => $agence->id,
+        'start_date' => now()->addDays(5)->toDateString(),
+        'end_date' => now()->addDays(6)->toDateString(),
+        'total_days' => 2,
+        'status' => App\Models\Booking::STATUS_CONFIRMED,
+        'client_name' => 'Yacine', 'client_phone' => '0555112233',
+        'daily_price_dzd' => 4200, 'total_price_dzd' => 8400,
+    ]);
+
+    // Le lendemain de la restitution tombe dans la marge.
+    get(route('search', ['start' => now()->addDays(7)->toDateString(),
+        'end' => now()->addDays(8)->toDateString()]))
+        ->assertInertia(fn ($page) => $page->has('vehicles.data', 0));
+
+    // Le surlendemain, non.
+    get(route('search', ['start' => now()->addDays(8)->toDateString(),
+        'end' => now()->addDays(9)->toDateString()]))
+        ->assertInertia(fn ($page) => $page->has('vehicles.data', 1));
+});
+
+it('ignore en silence un sejour qui ne tient pas debout', function () {
+    $vehicule = publishedVehicle(agencyOn(Plan::GOLD));
+
+    // Ces URL arrivent de liens vieillis et de robots : repondre par une
+    // erreur de validation transformerait une recherche en impasse, alors que
+    // la liste complete est une reponse parfaitement utile.
+    get(route('search', ['start' => 'la-semaine-prochaine', 'end' => 'plus-tard']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->has('vehicles.data', 1)->where('filters.start', null));
+
+    get(route('search', ['start' => now()->addDays(9)->toDateString(),
+        'end' => now()->addDays(2)->toDateString()]))
+        ->assertInertia(fn ($page) => $page->where('filters.start', null));
+
+    get(route('search', ['start' => now()->subDays(3)->toDateString(),
+        'end' => now()->addDays(2)->toDateString()]))
+        ->assertInertia(fn ($page) => $page->where('filters.start', null));
+});
+
+it('transmet le sejour de la recherche a la fiche du vehicule', function () {
+    $vehicule = publishedVehicle(agencyOn(Plan::GOLD));
+    $depart = now()->addDays(4)->toDateString();
+
+    // Sans cela le visiteur redonnerait sur la fiche des dates qu'il vient de
+    // saisir a l'accueil.
+    get(route('vehicle.show', ['vehicle' => $vehicule->id, 'slug' => $vehicule->slug,
+        'start' => $depart, 'end' => now()->addDays(6)->toDateString()]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('stay.start', $depart));
+});

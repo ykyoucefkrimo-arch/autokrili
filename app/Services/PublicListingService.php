@@ -18,6 +18,8 @@ class PublicListingService
     /** Manual sorts. They deliberately ignore the plan priorities (§4.2). */
     public const SORTS = ['price_asc', 'price_desc', 'recent'];
 
+    public function __construct(private readonly AvailabilityService $availability) {}
+
     /**
      * Base query for every public page. `visible()` already restricts to
      * published listings of approved agencies; what is added here are the plan
@@ -59,6 +61,20 @@ class PublicListingService
             // Le prix se filtre par EXISTS sur la regle journaliere, pas par
             // HAVING sur l'alias : SQLite refuse un HAVING sans GROUP BY, et
             // la base de test est SQLite.
+            /*
+             * Les dates, posees le 2026-10-18 : depuis que l'accueil les
+             * demande, une voiture deja prise sur la periode n'a plus rien a
+             * faire dans la liste. On exclut par identifiant plutot que par
+             * jointure — la marge de nettoyage varie par agence et se calcule
+             * en PHP (voir AvailabilityService::unavailableVehicleIds).
+             */
+            ->when(
+                ($filters['start'] ?? null) && ($filters['end'] ?? null),
+                fn ($q) => $q->whereNotIn(
+                    'vehicles.id',
+                    $this->availability->unavailableVehicleIds($filters['start'], $filters['end'])
+                )
+            )
             ->when($filters['price_min'] ?? null, fn ($q, $v) => $q->whereHas(
                 'pricingRules',
                 fn ($r) => $r->where('duration_type', PricingRule::DAILY)->where('price_dzd', '>=', (int) $v)

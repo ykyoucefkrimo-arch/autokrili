@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Agency;
+use App\Models\AvailabilityBlock;
 use App\Models\Booking;
 use App\Models\Vehicle;
 use Carbon\CarbonPeriod;
@@ -111,6 +113,72 @@ class AvailabilityService
         sort($keys);
 
         return $keys;
+    }
+
+    /**
+     * Les vehicules occupes sur [start, end], pour filtrer une LISTE.
+     *
+     * Pose le 2026-10-18, quand l'accueil s'est mis a demander les dates : la
+     * recherche ne doit plus proposer une voiture que la fiche refusera deux
+     * ecrans plus loin.
+     *
+     * **Pourquoi deux temps plutot qu'une requete.** La marge de nettoyage
+     * (`buffer_hours`) appartient a l'agence, pas au vehicule : l'appliquer en
+     * SQL demanderait de l'arithmetique de dates differente sous MySQL et
+     * sous SQLite, alors que les tests tournent sur l'un et la production sur
+     * l'autre. On ratisse donc large avec la marge la PLUS grande, puis on
+     * tranche en PHP avec la marge propre a chaque agence. Le resultat est
+     * exact, et le volume reste celui des occupations qui touchent la periode
+     * demandee — jamais le catalogue entier.
+     *
+     * @return array<int, int>
+     */
+    public function unavailableVehicleIds(string $start, string $end): array
+    {
+        [$start, $end] = $this->normalise($start, $end);
+
+        $margeMax = (int) ceil(((int) Agency::max('buffer_hours')) / 24);
+        $debut = Carbon::parse($start)->subDays($margeMax)->toDateString();
+        $fin = Carbon::parse($end)->addDays($margeMax)->toDateString();
+
+        $occupations = Booking::query()
+            ->whereIn('status', Booking::BLOCKING_STATUSES)
+            ->overlapping($debut, $fin)
+            ->get(['vehicle_id', 'agency_id', 'start_date', 'end_date'])
+            ->concat(
+                AvailabilityBlock::query()
+                    ->where('start_date', '<=', $fin)
+                    ->where('end_date', '>=', $debut)
+                    ->get(['vehicle_id', 'start_date', 'end_date'])
+            );
+
+        // Un blocage manuel ne porte pas d'agence sur sa ligne : on passe par
+        // le vehicule. Une passe pour tout le monde, pas une requete par ligne.
+        $agenceDuVehicule = Vehicle::whereIn('id', $occupations->pluck('vehicle_id')->unique())
+            ->pluck('agency_id', 'id');
+        $marges = Agency::pluck('buffer_hours', 'id');
+
+        $debutDemande = Carbon::parse($start);
+        $finDemande = Carbon::parse($end);
+        $occupes = [];
+
+        foreach ($occupations as $occupation) {
+            $agenceId = $occupation->agency_id ?? $agenceDuVehicule[$occupation->vehicle_id] ?? null;
+            $heures = (int) ($marges[$agenceId] ?? 0);
+            $marge = $heures > 0 ? (int) ceil($heures / 24) : 0;
+
+            $depuis = Carbon::parse($occupation->start_date)->subDays($marge);
+            $jusqua = Carbon::parse($occupation->end_date)->addDays($marge);
+
+            // Le test des intervalles fermes, le meme qu'`isAvailable` : une
+            // location qui finit le jour ou une autre commence est une remise
+            // en main propre, pas un creneau libre.
+            if ($depuis->lte($finDemande) && $jusqua->gte($debutDemande)) {
+                $occupes[$occupation->vehicle_id] = true;
+            }
+        }
+
+        return array_keys($occupes);
     }
 
     /**

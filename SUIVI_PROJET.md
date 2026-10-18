@@ -1017,3 +1017,53 @@ travail deux fois.
 `symfony/yaml` : **plus aucun avis**.
 
 **243 tests, 1140 assertions.**
+
+### Le séjour commence à l'accueil
+
+Jusqu'ici l'accueil ne demandait que le lieu, et une mention sous le
+formulaire renvoyait les dates à la fiche du véhicule. Conséquence : la liste
+montrait des voitures déjà prises, et le visiteur ne l'apprenait qu'au bout du
+tunnel. Les grands loueurs demandent les dates d'abord — ce n'est pas une
+coquetterie, c'est ce qui rend réservable tout ce qui s'affiche.
+
+Les dates traversent désormais la chaîne entière : accueil → recherche →
+fiche → formulaire, qui les attendait déjà sous `start` et `end`. Rien n'est
+obligatoire : sans dates, le catalogue complet répond, parce que quelqu'un qui
+compare les prix n'a pas encore de dates.
+
+**Deux décisions à ne pas défaire.**
+
+Un séjour invalide est **ignoré en silence** — départ après le retour, date
+passée, texte à la place d'une date. Ces URL viennent de liens vieillis et de
+robots d'indexation ; répondre par une erreur de validation transformerait une
+recherche en impasse alors que la liste complète est une réponse utile.
+
+La disponibilité d'une **liste** se calcule en deux temps, pas en SQL. La
+marge de nettoyage appartient à l'agence, et l'appliquer en requête
+demanderait de l'arithmétique de dates différente sous SQLite (les tests) et
+sous MySQL (la production). On ratisse donc large avec la marge la plus
+grande, puis on tranche en PHP avec celle de chaque agence.
+
+### La prise de session par le formulaire de réservation
+
+Trouvée en lisant le tunnel, pas cherchée. **Elle était grave.**
+
+`findOrCreateClient()` cherchait le client **par adresse e-mail**, et `store()`
+connectait le visiteur au compte trouvé. Taper l'adresse de quelqu'un d'autre
+dans le formulaire de réservation ouvrait donc sa session, sans mot de passe
+et sans trace. La recherche ne filtrait pas sur le rôle : `admin@autokrili.dz`
+y donnait accès à l'administration. Le site était en ligne.
+
+La correction est celle que demandait le propriétaire par ailleurs : **on
+compose son séjour en visiteur, on s'identifie au moment de confirmer.** Si
+l'adresse a déjà un compte, la réservation est mise de côté en session,
+`url.intended` pointe sur `bookings.resume`, et elle est créée telle quelle
+après la connexion. `resume()` vérifie que l'adresse du compte connecté est
+bien celle de la demande — sans quoi il suffirait de commencer une réservation
+au nom d'un autre puis de se connecter chez soi pour se l'approprier.
+
+Une adresse inconnue continue de créer le compte et de connecter : ce compte
+vient de naître pour cette adresse, il ne donne accès à rien qui existait
+avant.
+
+**251 tests, 1237 assertions.**

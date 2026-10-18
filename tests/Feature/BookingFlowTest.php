@@ -267,3 +267,78 @@ it('laisse le client annuler avec un motif', function () {
     expect($booking->fresh()->status)->toBe(Booking::STATUS_CANCELLED)
         ->and($booking->fresh()->cancelled_by)->toBe('client');
 });
+
+/* --- Connexion a la confirmation (2026-10-18) ----------------------------- */
+
+/**
+ * La prise de session, telle qu'elle existait en production.
+ *
+ * Le service cherchait le client par adresse, et le controleur connectait le
+ * visiteur au compte trouve. Taper l'adresse d'un autre ouvrait sa session.
+ * L'administrateur etait joignable ainsi : son adresse se devine.
+ */
+it('ne connecte jamais quelqu un a un compte qu il n a pas prouve', function () {
+    $victime = User::create([
+        'name' => 'Admin', 'email' => 'admin@autokrili.dz',
+        'password' => Hash::make('un-vrai-mot-de-passe'),
+        'role' => User::ROLE_ADMIN,
+    ]);
+
+    post(route('bookings.store', $this->vehicle), tunnelPayload([
+        'client_email' => 'admin@autokrili.dz',
+    ]))->assertRedirect(route('login'));
+
+    $this->assertGuest();
+    expect(Booking::count())->toBe(0)
+        ->and($victime->fresh()->bookings()->count())->toBe(0);
+});
+
+it('reprend la reservation mise de cote une fois la personne identifiee', function () {
+    $client = User::create([
+        'name' => 'Yacine Haddad', 'email' => 'yacine@test.dz',
+        'password' => Hash::make('password'), 'role' => User::ROLE_CLIENT,
+    ]);
+
+    post(route('bookings.store', $this->vehicle), tunnelPayload())
+        ->assertRedirect(route('login'));
+
+    // Rien n'est cree avant la preuve, et rien n'est perdu non plus.
+    expect(Booking::count())->toBe(0);
+    expect(session('url.intended'))->toBe(route('bookings.resume'));
+
+    actingAs($client)->get(route('bookings.resume'))->assertRedirect();
+
+    $reservation = Booking::firstOrFail();
+    expect($reservation->client_id)->toBe($client->id)
+        ->and(session()->has(App\Http\Controllers\Public\BookingController::EN_ATTENTE))->toBeFalse();
+});
+
+it('jette la reservation si on se connecte avec une autre adresse', function () {
+    User::create([
+        'name' => 'Yacine', 'email' => 'yacine@test.dz',
+        'password' => Hash::make('password'), 'role' => User::ROLE_CLIENT,
+    ]);
+    $autre = User::create([
+        'name' => 'Nadia', 'email' => 'nadia@test.dz',
+        'password' => Hash::make('password'), 'role' => User::ROLE_CLIENT,
+    ]);
+
+    post(route('bookings.store', $this->vehicle), tunnelPayload());
+
+    // Sinon il suffirait de commencer une reservation au nom d'un autre, puis
+    // de se connecter chez soi, pour se l'approprier.
+    actingAs($autre)->get(route('bookings.resume'))->assertRedirect(route('search'));
+
+    expect(Booking::count())->toBe(0);
+});
+
+it('cree et connecte sans detour quand l adresse est inconnue', function () {
+    post(route('bookings.store', $this->vehicle), tunnelPayload([
+        'client_email' => 'personne-connue@test.dz',
+    ]))->assertRedirect();
+
+    // Le compte vient d'etre cree pour cette adresse : le connecter ne donne
+    // acces a rien qui existait avant.
+    $this->assertAuthenticated();
+    expect(Booking::count())->toBe(1);
+});

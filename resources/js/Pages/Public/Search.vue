@@ -39,6 +39,12 @@ const form = ref({
     with_driver: props.filters.with_driver ?? '',
     search: props.filters.search ?? '',
     sort: props.filters.sort ?? '',
+    // Le sejour, arrive de l'accueil. Dans le formulaire pour que le modifier
+    // relance la recherche comme n'importe quel filtre ; hors de `reset()` et
+    // du compteur, parce que ce n'est pas un filtre de confort : l'effacer
+    // ferait silencieusement reapparaitre des voitures deja prises.
+    start: props.filters.start ?? '',
+    end: props.filters.end ?? '',
 });
 
 const title = computed(() => {
@@ -74,14 +80,37 @@ watch(form, (value) => {
 
 const reset = () => {
     form.value = {
+        ...form.value,
         category: '', transmission: '', fuel: '', seats: '', price_max: '',
         air_conditioning: '', with_driver: '', search: '', sort: '',
     };
 };
 
+const aujourdhui = new Date().toISOString().slice(0, 10);
+
+const HORS_COMPTEUR = ['sort', 'start', 'end'];
+
 const activeCount = computed(
-    () => Object.entries(form.value).filter(([key, v]) => key !== 'sort' && v !== '').length,
+    () => Object.entries(form.value).filter(([key, v]) => !HORS_COMPTEUR.includes(key) && v !== '').length,
 );
+
+const sejour = computed(() => {
+    if (!form.value.start || !form.value.end) return null;
+
+    const depart = new Date(form.value.start);
+    const retour = new Date(form.value.end);
+    const jours = Math.round((retour - depart) / 86400000) + 1;
+
+    return { jours, depart, retour };
+});
+
+const enLettres = (date) =>
+    date.toLocaleDateString('fr-DZ', { day: 'numeric', month: 'long', year: 'numeric' });
+
+// Le sejour suit le visiteur sur la fiche du vehicule, ou le formulaire de
+// reservation l'attend deja sous `start` et `end`.
+const avecSejour = (params = {}) =>
+    sejour.value ? { ...params, start: form.value.start, end: form.value.end } : params;
 
 // Le lieu se choisit ici mais vit dans l'URL : changer de wilaya est une
 // navigation vers une autre page indexable, pas un filtre de plus.
@@ -90,7 +119,9 @@ const { communes, loading: loadingCommunes } = useCommunes(selectedWilaya, props
 
 const changeWilaya = (event) => {
     const wilaya = props.wilayas.find((w) => w.id === Number(event.target.value));
-    router.get(wilaya ? route('search.wilaya', { wilaya: wilaya.slug }) : route('search'));
+    // `avecSejour` : changer de wilaya est une navigation, et une navigation
+    // perdrait les dates si on ne les reposait pas dans l'URL.
+    router.get(wilaya ? route('search.wilaya', { wilaya: wilaya.slug }) : route('search'), avecSejour());
 };
 
 const changeCommune = (event) => {
@@ -98,7 +129,7 @@ const changeCommune = (event) => {
 
     router.get(commune
         ? route('search.commune', { wilaya: props.place.wilaya.slug, commune: commune.slug })
-        : route('search.wilaya', { wilaya: props.place.wilaya.slug }));
+        : route('search.wilaya', { wilaya: props.place.wilaya.slug }), avecSejour());
 };
 </script>
 
@@ -137,6 +168,41 @@ const changeCommune = (event) => {
                 <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
                 <p class="text-sm text-gray-600">
                     {{ vehicles.total }} {{ vehicles.total > 1 ? t('véhicules') : t('véhicule') }}
+                </p>
+            </div>
+
+            <!--
+                Le sejour, en haut et modifiable sur place.
+
+                Il est affiche meme vide : un visiteur arrive par un lien
+                indexe n'est jamais passe par l'accueil, et c'est ici qu'il
+                decouvre qu'il peut filtrer sur ses dates.
+            -->
+            <div class="mt-4 flex flex-wrap items-end gap-3 rounded-carte border border-marque-200 bg-marque-50 px-4 py-3">
+                <label class="flex flex-col">
+                    <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-500">
+                        {{ t('Départ') }}
+                    </span>
+                    <input v-model="form.start" type="date" :min="aujourdhui"
+                        class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
+                </label>
+                <label class="flex flex-col">
+                    <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-500">
+                        {{ t('Retour') }}
+                    </span>
+                    <input v-model="form.end" type="date" :min="form.start || aujourdhui"
+                        class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
+                </label>
+
+                <p v-if="sejour" class="pb-2 text-sm text-encre-700">
+                    <span class="font-semibold">{{ sejour.jours }}</span>
+                    {{ sejour.jours > 1 ? t('jours') : t('jour') }}
+                    <span class="text-encre-500">
+                        — {{ t('seuls les véhicules libres sont affichés') }}
+                    </span>
+                </p>
+                <p v-else class="pb-2 text-sm text-encre-500">
+                    {{ t('Indiquez vos dates pour ne voir que les véhicules libres.') }}
                 </p>
             </div>
 
@@ -237,7 +303,8 @@ const changeCommune = (event) => {
                     </div>
 
                     <div v-else class="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
-                        <VehicleCard v-for="vehicle in vehicles.data" :key="vehicle.id" :vehicle="vehicle" />
+                        <VehicleCard v-for="vehicle in vehicles.data" :key="vehicle.id" :vehicle="vehicle"
+                            :start="form.start" :end="form.end" />
                     </div>
 
                     <div v-if="vehicles.links.length > 3" class="mt-8 flex flex-wrap justify-center gap-1">
