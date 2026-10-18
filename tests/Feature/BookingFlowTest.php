@@ -342,3 +342,65 @@ it('cree et connecte sans detour quand l adresse est inconnue', function () {
     $this->assertAuthenticated();
     expect(Booking::count())->toBe(1);
 });
+
+/* --- Limitation de debit par route (2026-10-18) --------------------------- */
+
+/**
+ * Le 429 en production, en voulant reserver.
+ *
+ * `ThrottleRequests` compose sa cle ainsi : `prefixe . signature`. Pour un
+ * utilisateur connecte, la signature se reduit a son identifiant — ni l'URL,
+ * ni la methode, ni le nom de la route n'y entrent. Sans troisieme parametre,
+ * TOUTES les routes limitees partageaient donc un seul compteur par personne,
+ * et quelques clics sur un numero de telephone suffisaient a fermer la
+ * reservation.
+ */
+it('ne fait pas payer a la reservation les clics faits ailleurs', function () {
+    $client = User::create([
+        'name' => 'Yacine', 'email' => 'yacine@test.dz',
+        'password' => Hash::make('password'), 'role' => User::ROLE_CLIENT,
+    ]);
+
+    // La route de contact tolere 60 appels par minute : on en consomme
+    // largement plus que les 10 de la reservation.
+    foreach (range(1, 25) as $ignore) {
+        actingAs($client)->post(route('vehicles.contact', $this->vehicle))->assertSuccessful();
+    }
+
+    actingAs($client)->post(route('bookings.store', $this->vehicle), tunnelPayload([
+        'client_email' => $client->email,
+    ]))->assertRedirect();
+
+    expect(Booking::count())->toBe(1);
+});
+
+it('limite tout de meme les envois repetes du formulaire', function () {
+    $client = User::create([
+        'name' => 'Yacine', 'email' => 'yacine@test.dz',
+        'password' => Hash::make('password'), 'role' => User::ROLE_CLIENT,
+    ]);
+
+    // Dix passages, puis la porte se ferme : chaque envoi peut creer un
+    // compte, la limite garde son sens.
+    foreach (range(1, 10) as $ignore) {
+        actingAs($client)->post(route('bookings.store', $this->vehicle), tunnelPayload([
+            'client_email' => $client->email, 'client_phone' => 'pas-un-numero',
+        ]));
+    }
+
+    actingAs($client)->post(route('bookings.store', $this->vehicle), tunnelPayload([
+        'client_email' => $client->email,
+    ]))->assertStatus(429);
+});
+
+it('refuse un telephone qui n est pas algerien', function (string $numero) {
+    post(route('bookings.store', $this->vehicle), tunnelPayload(['client_phone' => $numero]))
+        ->assertSessionHasErrors('client_phone');
+
+    expect(Booking::count())->toBe(0);
+})->with([
+    'trop court' => '0555',
+    'indicatif etranger' => '+33612345678',
+    'prefixe inexistant' => '0455112233',
+    'des lettres' => 'appelez-moi',
+]);

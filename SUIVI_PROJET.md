@@ -1245,3 +1245,81 @@ disparaître en silence toutes les notifications de réservation à venir.
 client ne reçoit son bon, et chaque inscription demande ce geste manuel.
 
 **270 tests, 1344 assertions.**
+
+### La messagerie, enfin
+
+`MAIL_MAILER=file` depuis le début : rien ne partait. Vérification des
+agences, bons de location, notifications de réservation — tout était écrit
+dans un fichier que personne ne lit.
+
+**Ce qui a été trouvé sur le serveur**, par l'essai plutôt que par la
+documentation. Hostinger fournit `/usr/sbin/sendmail`, mais ce n'est pas
+sendmail : c'est un utilitaire maison qui accepte tout message, renvoie zéro,
+et **jette en silence** ce qu'il n'a pas le droit d'envoyer. Un premier essai
+expédié depuis `no-reply@purple-baboon-234585.hostingersite.com` a donc été
+« accepté » sans jamais arriver.
+
+La condition est l'adresse d'expéditeur : elle doit appartenir à un domaine
+qui possède une messagerie chez Hostinger. Le compte en héberge plusieurs, et
+`weenbee.com` a déjà sa boîte. Deuxième essai depuis `contact@weenbee.com` :
+reçu. **Aucun identifiant n'est nécessaire** — c'est d'ailleurs ainsi que
+weenbee.com envoie, son `.env` n'a ni nom d'utilisateur ni mot de passe.
+
+Production : `MAIL_MAILER=sendmail`, expéditeur `contact@weenbee.com`,
+affiché « Autokrili ». Le développement reste en `file`, ce qui garde l'écran
+« Emails » utile en local ; il disparaît de la production, puisqu'il n'a de
+sens qu'avec ce pilote.
+
+*Piège évité de justesse* : toutes les notifications implémentent
+`ShouldQueue`. Si la production avait tourné avec une file `database`, rien ne
+serait parti malgré la bonne configuration, faute de travailleur. Elle est en
+`sync` — vérifié avant de basculer, pas après.
+
+**Ce qui reste cassé, et c'est maintenant visible** : les quatre tâches
+planifiées de `routes/console.php` ne tournent pas. `crontab` n'existe pas sur
+cet hébergement, il faut passer par le planificateur de hPanel. Tant que ce
+n'est pas fait : les demandes sans réponse n'expirent jamais et gèlent le
+calendrier du véhicule, les formules ne sont ni rappelées ni rétrogradées, les
+invitations à laisser un avis ne partent pas, et le rappel de la veille non
+plus.
+
+Attention avant de l'activer : la base contient encore les agences et clients
+de démonstration, avec des adresses `@demo.dz`. Lancer le planificateur leur
+enverrait des courriels et ferait vieillir leurs formules.
+
+### Deux défauts du tunnel de réservation
+
+Signalés ensemble, sans rapport entre eux.
+
+**Le 429.** `ThrottleRequests` compose sa clé ainsi : `préfixe . signature`.
+Et pour un utilisateur connecté, la signature **se réduit à son
+identifiant** — ni l'URL, ni la méthode, ni le nom de la route n'y entrent.
+Le troisième paramètre de `throttle` est ce préfixe ; il était absent partout.
+Les quatre routes limitées du projet partageaient donc **un seul compteur par
+personne** : quelques clics sur un numéro de téléphone, consommés sur une
+limite de 60, fermaient la réservation dont la limite est 10.
+
+Chaque route a maintenant son préfixe : `contact`, `reservation`,
+`inscription-agence`, `photos`. Un test vérifie qu'on peut réserver après
+vingt-cinq clics ailleurs, un autre que la limite propre au formulaire tient
+toujours.
+
+**Le téléphone accepté à tort.** Le serveur le validait correctement ; c'est
+le formulaire qui laissait passer. Il compte trois étapes, et le passage à la
+suivante ne vérifiait que le REMPLISSAGE :
+
+```js
+if (step.value === 1) return form.client_name && form.client_phone;
+```
+
+« 0555 » passait donc l'étape, et le refus n'arrivait qu'à l'envoi final —
+**sur un champ devenu invisible deux étapes plus tôt**. L'envoi semblait
+échouer sans raison.
+
+Deux corrections, et la seconde compte autant que la première : le format est
+désormais vérifié par le même motif que le serveur, et `onError` **ramène sur
+l'étape du premier champ fautif**. Sans cela, toute erreur serveur portant sur
+une étape antérieure resterait invisible — ce qui vaut pour les dates comme
+pour le nom, pas seulement pour le téléphone.
+
+**276 tests, 1384 assertions.**
