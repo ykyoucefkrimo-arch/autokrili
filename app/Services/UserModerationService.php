@@ -74,6 +74,34 @@ class UserModerationService
     }
 
     /**
+     * Marquer une adresse comme vérifiée, à la main.
+     *
+     * Posé le 2026-10-18, après qu'une agence approuvée s'est retrouvée
+     * enfermée dehors. Une agence doit confirmer son adresse avant d'entrer
+     * (`User::hasVerifiedEmail()`), et le courriel qui porte le lien n'est
+     * jamais parti : la production tourne avec `MAIL_MAILER=file`. Le compte
+     * était approuvé, légitime, et sans aucun moyen d'avancer.
+     *
+     * **Ce geste n'est pas l'équivalent du clic.** Le clic prouve que
+     * l'adresse est joignable ; ceci ne prouve que la décision d'un
+     * administrateur qui a l'agence au téléphone. C'est pourquoi il reste un
+     * geste explicite, journalisé, et non une conséquence de l'approbation :
+     * une coquille dans l'adresse ferait disparaître en silence toutes les
+     * notifications de réservation à venir.
+     */
+    public function verifyEmail(User $utilisateur): User
+    {
+        return DB::transaction(function () use ($utilisateur) {
+            $avant = $utilisateur->getAttributes();
+
+            $utilisateur->forceFill(['email_verified_at' => now()])->save();
+            $this->audit->logChange('user.email_verified', $utilisateur, $avant);
+
+            return $utilisateur->refresh();
+        });
+    }
+
+    /**
      * Deux comptes qu'on ne ferme pas.
      *
      * **Le sien** : se suspendre soi-même met fin à sa propre session dans la

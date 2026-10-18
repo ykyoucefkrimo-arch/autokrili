@@ -100,6 +100,21 @@ class UserController extends Controller
         return back()->with('status', __('Le compte a été suspendu.'));
     }
 
+    /**
+     * Confirmer une adresse a la place de son titulaire.
+     *
+     * Une agence ne peut pas entrer tant qu'elle n'a pas clique le lien de
+     * verification, et ce lien part par courriel. Tant que la production
+     * tourne sans serveur d'envoi, c'est le seul moyen de debloquer un
+     * dossier legitime.
+     */
+    public function verifyEmail(User $user): RedirectResponse
+    {
+        $this->moderation->verifyEmail($user);
+
+        return back()->with('status', __('L’adresse a été marquée comme vérifiée.'));
+    }
+
     public function reinstate(User $user): RedirectResponse
     {
         $this->moderation->reinstate($user);

@@ -1214,3 +1214,34 @@ seconde — et tout autre administrateur, où à deux comptes le premier qui
 clique gagne.
 
 **268 tests, 1338 assertions.**
+
+### L'agence approuvée qui ne pouvait pas entrer
+
+Première inscription réelle, approuvée dans l'administration — et la
+connexion tombe sur « confirmez votre adresse e-mail ». `MAIL_MAILER=file` :
+le courriel portant le lien n'est jamais parti. Le compte était approuvé,
+légitime, et enfermé dehors sans aucun moyen d'avancer.
+
+C'est le blocage signalé trois fois dans la journée qui se concrétise. Une
+agence doit confirmer son adresse avant d'accéder à son espace
+(`User::hasVerifiedEmail()` le lui impose, pas aux clients), et le seul chemin
+passait par un courriel que la production n'envoie pas.
+
+**Déblocage immédiat** : l'adresse marquée vérifiée en base.
+
+**Le trou comblé** : l'administration peut désormais confirmer une adresse
+depuis la liste des comptes. Le libellé « Adresse non vérifiée » est devenu le
+bouton qui la valide, avec une confirmation qui dit ce que le geste affirme —
+*qu'on a joint l'agence par un autre moyen*.
+
+Ce geste n'est **pas** l'équivalent du clic, et ne doit pas le devenir. Le
+clic prouve que l'adresse est joignable ; ceci ne prouve que la décision d'un
+humain. C'est pourquoi il reste explicite et journalisé, et non une
+conséquence automatique de l'approbation : une coquille dans l'adresse ferait
+disparaître en silence toutes les notifications de réservation à venir.
+
+**La vraie correction reste à faire** : un serveur d'envoi. Tant que
+`MAIL_MAILER=file`, aucune agence n'est prévenue d'une réservation, aucun
+client ne reçoit son bon, et chaque inscription demande ce geste manuel.
+
+**270 tests, 1344 assertions.**
