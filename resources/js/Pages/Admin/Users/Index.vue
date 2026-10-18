@@ -61,6 +61,18 @@ const confirmer = () => {
 const rouvrir = (utilisateur) => {
     router.post(route('admin.users.reinstate', utilisateur.id), {}, { preserveScroll: true });
 };
+
+/*
+ * Une agence ne peut pas entrer tant que son adresse n'est pas confirmee, et
+ * le lien part par courriel. Tant que la production n'envoie rien, c'est le
+ * seul moyen de debloquer un dossier legitime — d'ou la confirmation : ce
+ * geste affirme qu'on a joint l'agence autrement.
+ */
+const verifier = (utilisateur) => {
+    if (!confirm(`Marquer ${utilisateur.email} comme vérifiée ? À ne faire que si vous avez joint cette agence par un autre moyen.`)) return;
+
+    router.post(route('admin.users.verify-email', utilisateur.id), {}, { preserveScroll: true });
+};
 </script>
 
 <template>
@@ -128,10 +140,11 @@ const rouvrir = (utilisateur) => {
                                     <div class="mt-1 flex flex-wrap gap-1">
                                         <span v-if="u.par_google"
                                             class="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600">Google</span>
-                                        <span v-if="!u.verifie"
-                                            class="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-800">
-                                            Adresse non vérifiée
-                                        </span>
+                                        <button v-if="!u.verifie" @click="verifier(u)"
+                                            title="Marquer cette adresse comme vérifiée"
+                                            class="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-800 hover:bg-amber-200">
+                                            Adresse non vérifiée — confirmer
+                                        </button>
                                         <!-- Le motif compte autant que l'état : c'est lui
                                              qu'on relit avant de rouvrir. -->
                                         <span v-if="u.suspendu"

@@ -240,6 +240,8 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])->prefix('admin')->name('ad
         ->name('users.suspend');
     Route::post('utilisateurs/{user}/reouvrir', [AdminUserController::class, 'reinstate'])
         ->name('users.reinstate');
+    Route::post('utilisateurs/{user}/verifier-adresse', [AdminUserController::class, 'verifyEmail'])
+        ->name('users.verify-email');
 
     Route::get('annonces', [AdminVehicleController::class, 'index'])->name('vehicles.index');
     Route::post('annonces/lot', [AdminVehicleController::class, 'bulk'])->name('vehicles.bulk');

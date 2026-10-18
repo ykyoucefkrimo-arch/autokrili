@@ -193,3 +193,34 @@ it('montre l agence tenue par le compte', function () {
         ->assertInertia(fn ($page) => $page
             ->where('utilisateurs.data.0.agence.commercial_name', $agence->commercial_name));
 });
+
+/**
+ * L'agence approuvée qui ne pouvait pas entrer (2026-10-18).
+ *
+ * Une agence doit confirmer son adresse avant d'accéder à son espace, et le
+ * lien part par courriel. En production `MAIL_MAILER=file` : le courriel
+ * n'est jamais parti, le compte était approuvé, légitime, et enfermé dehors.
+ */
+it('permet a l administrateur de confirmer une adresse', function () {
+    $agence = client('gerant@test.dz');
+    $agence->forceFill(['role' => User::ROLE_AGENCY, 'email_verified_at' => null])->save();
+
+    expect($agence->fresh()->hasVerifiedEmail())->toBeFalse();
+
+    actingAs($this->admin)->post(route('admin.users.verify-email', $agence))->assertRedirect();
+
+    expect($agence->fresh()->hasVerifiedEmail())->toBeTrue()
+        // Journalise : ce geste affirme qu'on a joint l'agence autrement, et
+        // c'est une affirmation dont on doit pouvoir repondre.
+        ->and(AuditLog::where('action', 'user.email_verified')->count())->toBe(1);
+});
+
+it('reserve la confirmation d adresse a l administrateur', function () {
+    $autre = client('autre@test.dz');
+    $autre->forceFill(['email_verified_at' => null])->save();
+
+    actingAs(client())->post(route('admin.users.verify-email', $autre))->assertNotFound();
+
+    // Sinon n'importe quel compte connecte validerait l'adresse d'un autre.
+    expect($autre->fresh()->email_verified_at)->toBeNull();
+});
