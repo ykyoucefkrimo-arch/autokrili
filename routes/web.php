@@ -122,13 +122,22 @@ Route::middleware('auth')->group(function () {
 | Distincte de l'inscription client : elle collecte le registre de commerce
 | et place le compte en attente de modération.
 */
-Route::middleware('guest')->group(function () {
-    Route::get('inscription-agence', [AgencyRegistrationController::class, 'create'])
-        ->name('agency.register');
-    Route::post('inscription-agence', [AgencyRegistrationController::class, 'store'])
-        // Rate limited: this form creates an account and writes two files.
-        ->middleware('throttle:6,1');
-});
+/*
+ * Plus dans le groupe `guest` depuis le 2026-10-18.
+ *
+ * Il y etait parce que le formulaire creait un compte. Mais `guest` renvoie
+ * tout utilisateur connecte vers son tableau de bord : depuis l'arrivee de la
+ * connexion Google, un client qui cliquait « Inscrire mon agence » etait
+ * silencieusement reconduit chez lui, et le bouton paraissait mort. Il devait
+ * se deconnecter pour inscrire son agence — ce que personne ne devine.
+ *
+ * Le controleur ecarte lui-meme ceux qui en ont deja une.
+ */
+Route::get('inscription-agence', [AgencyRegistrationController::class, 'create'])
+    ->name('agency.register');
+Route::post('inscription-agence', [AgencyRegistrationController::class, 'store'])
+    // Rate limited: this form creates an account and writes two files.
+    ->middleware('throttle:6,1');
 
 /*
 |--------------------------------------------------------------------------

@@ -1067,3 +1067,29 @@ vient de naître pour cette adresse, il ne donne accès à rien qui existait
 avant.
 
 **251 tests, 1237 assertions.**
+
+### « Inscrire mon agence » paraissait mort
+
+Signalé après la mise en ligne de la connexion Google, et c'est elle qui l'a
+révélé. La route était dans le groupe `guest`, qui **reconduit tout
+utilisateur connecté vers son tableau de bord**. Le bouton ne menait donc
+nulle part dès qu'on était identifié — et depuis Google, on l'est souvent.
+
+Le fond était pire que le bouton : un client connecté ne pouvait pas inscrire
+son agence du tout. Il fallait se déconnecter d'abord, ce que personne ne
+devine. Sur un produit dont l'acquisition repose entièrement sur les agences,
+la porte était fermée à ceux qui avaient déjà un compte.
+
+La route quitte donc `guest`, et le contrôleur écarte lui-même ceux qui ont
+déjà une agence en les reposant sur leur tableau de bord. Un compte connecté
+**devient** le compte de l'agence : les champs adresse et mot de passe
+disparaissent du formulaire, et les règles passent à `prohibited` — imposer
+une autre adresse permettrait d'inscrire une agence au nom d'un tiers tout en
+en gardant le contrôle.
+
+Promouvoir un client en agence est sans danger : le rôle ne gouverne que
+l'affichage et `hasVerifiedEmail()`. Un compte Google étant déjà vérifié,
+aucune boucle de vérification ne s'ouvre, et l'événement `Registered` n'est
+plus émis pour rien.
+
+**255 tests, 1258 assertions.**

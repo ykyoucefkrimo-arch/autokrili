@@ -17,16 +17,38 @@ class AgencyRegistrationService
      * registration — a user without an agency, or the reverse — would leave
      * someone locked out with no way to finish.
      */
-    public function register(array $data, ?UploadedFile $logo, UploadedFile $tradeRegister): Agency
-    {
-        return DB::transaction(function () use ($data, $logo, $tradeRegister) {
-            $user = User::create([
+    public function register(
+        array $data,
+        ?UploadedFile $logo,
+        UploadedFile $tradeRegister,
+        ?User $proprietaire = null,
+    ): Agency {
+        return DB::transaction(function () use ($data, $logo, $tradeRegister, $proprietaire) {
+            /*
+             * Un compte deja connecte devient le compte de l'agence au lieu
+             * d'en creer un second (2026-10-18). Sans cela, quelqu'un arrive
+             * par Google devait se deconnecter, puis redonner une adresse —
+             * et se retrouvait avec deux comptes pour une seule personne.
+             *
+             * Le role ne gouverne que l'affichage et la verification
+             * d'adresse : promouvoir un client ne lui retire rien, et ses
+             * reservations passees restent les siennes.
+             */
+            $user = $proprietaire ?: User::create([
                 'name' => $data['manager_name'],
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
                 'phone' => $data['phone'],
                 'role' => User::ROLE_AGENCY,
             ]);
+
+            if ($proprietaire) {
+                $user->forceFill([
+                    'role' => User::ROLE_AGENCY,
+                    'phone' => $user->phone ?: $data['phone'],
+                ])->save();
+            }
+
             $user->syncRoles([User::ROLE_AGENCY]);
 
             return Agency::create([

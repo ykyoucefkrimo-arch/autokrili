@@ -10,11 +10,16 @@ import { computed } from 'vue';
 
 const props = defineProps({
     wilayas: { type: Array, default: () => [] },
+    // Le compte deja connecte, s'il y en a un : son adresse devient celle de
+    // l'agence, et les champs d'identifiants disparaissent.
+    compte: { type: Object, default: null },
 });
 
 const form = useForm({
     commercial_name: '',
-    manager_name: '',
+    // Le nom du compte connecte, qu'on peut toujours corriger : le gerant
+    // n'est pas forcement celui qui tient le compte.
+    manager_name: props.compte?.name ?? '',
     trade_register_number: '',
     nif: '',
     wilaya_id: '',
@@ -154,27 +159,40 @@ const submit = () => {
                     </div>
                 </div>
 
-                <div>
-                    <InputLabel for="email" :value="t('Adresse e-mail')" />
-                    <TextInput id="email" v-model="form.email" type="email" class="mt-1 block w-full"
-                        required autocomplete="username" />
-                    <InputError class="mt-2" :message="form.errors.email" />
+                <!-- Deja connecte : son compte devient celui de l'agence.
+                     Redemander une adresse en creerait un second pour la meme
+                     personne, et un mot de passe n'aurait aucun sens pour
+                     quelqu'un arrive par Google. -->
+                <div v-if="compte" class="rounded-carte border border-marque-200 bg-marque-50 p-4 text-sm">
+                    <p class="font-medium text-encre-900">
+                        {{ t('Cette agence sera rattachée à votre compte') }}
+                    </p>
+                    <p class="mt-1 text-encre-600">{{ compte.email }}</p>
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2">
+                <template v-else>
                     <div>
-                        <InputLabel for="password" value="Mot de passe" />
-                        <TextInput id="password" v-model="form.password" type="password"
-                            class="mt-1 block w-full" required autocomplete="new-password" />
-                        <InputError class="mt-2" :message="form.errors.password" />
+                        <InputLabel for="email" :value="t('Adresse e-mail')" />
+                        <TextInput id="email" v-model="form.email" type="email" class="mt-1 block w-full"
+                            required autocomplete="username" />
+                        <InputError class="mt-2" :message="form.errors.email" />
                     </div>
-                    <div>
-                        <InputLabel for="password_confirmation" value="Confirmation" />
-                        <TextInput id="password_confirmation" v-model="form.password_confirmation"
-                            type="password" class="mt-1 block w-full" required autocomplete="new-password" />
-                        <InputError class="mt-2" :message="form.errors.password_confirmation" />
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <InputLabel for="password" value="Mot de passe" />
+                            <TextInput id="password" v-model="form.password" type="password"
+                                class="mt-1 block w-full" required autocomplete="new-password" />
+                            <InputError class="mt-2" :message="form.errors.password" />
+                        </div>
+                        <div>
+                            <InputLabel for="password_confirmation" value="Confirmation" />
+                            <TextInput id="password_confirmation" v-model="form.password_confirmation"
+                                type="password" class="mt-1 block w-full" required autocomplete="new-password" />
+                            <InputError class="mt-2" :message="form.errors.password_confirmation" />
+                        </div>
                     </div>
-                </div>
+                </template>
             </section>
 
             <section class="space-y-4 border-t border-gray-200 pt-6">
