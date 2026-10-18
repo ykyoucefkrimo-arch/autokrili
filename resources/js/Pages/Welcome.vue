@@ -181,11 +181,12 @@ const submitSearch = () => {
                          l'action principale, elle doit etre le point le plus
                          lumineux de l'ecran. -->
                     <div class="mt-10 max-w-3xl rounded-carte bg-white p-4 shadow-carte-survol sm:p-5 lg:max-w-4xl">
-                        <form @submit.prevent="submitSearch" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto_auto]">
+                        <form @submit.prevent="submitSearch"
+                            class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_9.5rem_9.5rem_auto]">
                             <!-- Chaque champ porte son libelle : sans eux les
                                  listes flottaient plus haut que les dates, et
                                  la rangee partait de travers. -->
-                            <label class="flex flex-col text-left">
+                            <label class="flex min-w-0 flex-col text-left">
                                 <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
                                     {{ t('Wilaya') }}
                                 </span>
@@ -197,7 +198,7 @@ const submitSearch = () => {
                                     </option>
                                 </select>
                             </label>
-                            <label class="flex flex-col text-left">
+                            <label class="flex min-w-0 flex-col text-left">
                                 <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
                                     {{ t('Commune') }}
                                 </span>
@@ -214,14 +215,14 @@ const submitSearch = () => {
                                  telephone, celui que le visiteur connait deja.
                                  `min` empeche une date passee sans message
                                  d'erreur a lire. -->
-                            <label class="flex flex-col text-left">
+                            <label class="flex min-w-0 flex-col text-left">
                                 <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
                                     {{ t('Départ') }}
                                 </span>
                                 <input v-model="depart" type="date" :min="aujourdhui"
                                     class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
                             </label>
-                            <label class="flex flex-col text-left">
+                            <label class="flex min-w-0 flex-col text-left">
                                 <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
                                     {{ t('Retour') }}
                                 </span>
@@ -230,6 +231,20 @@ const submitSearch = () => {
                             </label>
 
                             <!--
+                                Pistes de grille : `minmax(0,1fr)` pour les
+                                listes et une largeur FIXE pour les dates.
+
+                                Avec `1fr_1fr_auto_auto_auto`, les deux listes
+                                reclamaient la largeur du plus long nom de
+                                wilaya (227 et 190 px) : une piste ne descend
+                                pas sous son contenu minimum, la somme
+                                depassait la carte de 40 px, et le dernier
+                                element — le bouton — sortait du cadre sur la
+                                photo. `minmax(0, …)` et `min-w-0` sur les
+                                enveloppes autorisent le retrecissement ; le
+                                navigateur tronque le texte de la liste fermee,
+                                ce qui est sans consequence.
+
                                 `sm:col-span-2` : sur deux colonnes le bouton
                                 se retrouvait seul sur une demi-ligne.
 
@@ -241,7 +256,7 @@ const submitSearch = () => {
                                 rangee. Mesure, pas estime.
                             -->
                             <button type="submit"
-                                class="self-end rounded-bouton border border-transparent bg-marque px-8 py-2 text-sm font-semibold text-encre-900 shadow-marque transition hover:bg-marque-400 sm:col-span-2 lg:col-span-1">
+                                class="self-end rounded-bouton border border-transparent bg-marque px-6 py-2 text-sm font-semibold text-encre-900 shadow-marque transition hover:bg-marque-400 sm:col-span-2 lg:col-span-1">
                                 {{ t('Rechercher') }}
                             </button>
                         </form>
