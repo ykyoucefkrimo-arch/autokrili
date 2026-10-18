@@ -1245,3 +1245,44 @@ disparaître en silence toutes les notifications de réservation à venir.
 client ne reçoit son bon, et chaque inscription demande ce geste manuel.
 
 **270 tests, 1344 assertions.**
+
+### La messagerie, enfin
+
+`MAIL_MAILER=file` depuis le début : rien ne partait. Vérification des
+agences, bons de location, notifications de réservation — tout était écrit
+dans un fichier que personne ne lit.
+
+**Ce qui a été trouvé sur le serveur**, par l'essai plutôt que par la
+documentation. Hostinger fournit `/usr/sbin/sendmail`, mais ce n'est pas
+sendmail : c'est un utilitaire maison qui accepte tout message, renvoie zéro,
+et **jette en silence** ce qu'il n'a pas le droit d'envoyer. Un premier essai
+expédié depuis `no-reply@purple-baboon-234585.hostingersite.com` a donc été
+« accepté » sans jamais arriver.
+
+La condition est l'adresse d'expéditeur : elle doit appartenir à un domaine
+qui possède une messagerie chez Hostinger. Le compte en héberge plusieurs, et
+`weenbee.com` a déjà sa boîte. Deuxième essai depuis `contact@weenbee.com` :
+reçu. **Aucun identifiant n'est nécessaire** — c'est d'ailleurs ainsi que
+weenbee.com envoie, son `.env` n'a ni nom d'utilisateur ni mot de passe.
+
+Production : `MAIL_MAILER=sendmail`, expéditeur `contact@weenbee.com`,
+affiché « Autokrili ». Le développement reste en `file`, ce qui garde l'écran
+« Emails » utile en local ; il disparaît de la production, puisqu'il n'a de
+sens qu'avec ce pilote.
+
+*Piège évité de justesse* : toutes les notifications implémentent
+`ShouldQueue`. Si la production avait tourné avec une file `database`, rien ne
+serait parti malgré la bonne configuration, faute de travailleur. Elle est en
+`sync` — vérifié avant de basculer, pas après.
+
+**Ce qui reste cassé, et c'est maintenant visible** : les quatre tâches
+planifiées de `routes/console.php` ne tournent pas. `crontab` n'existe pas sur
+cet hébergement, il faut passer par le planificateur de hPanel. Tant que ce
+n'est pas fait : les demandes sans réponse n'expirent jamais et gèlent le
+calendrier du véhicule, les formules ne sont ni rappelées ni rétrogradées, les
+invitations à laisser un avis ne partent pas, et le rappel de la veille non
+plus.
+
+Attention avant de l'activer : la base contient encore les agences et clients
+de démonstration, avec des adresses `@demo.dz`. Lancer le planificateur leur
+enverrait des courriels et ferait vieillir leurs formules.
