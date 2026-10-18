@@ -1124,3 +1124,29 @@ est mal placé, pas de combien ni pourquoi.
 
 Vérifié à 390, 640, 768, 1024, 1280 et 1536 px : débordement nul partout, page
 comme formulaire.
+
+### L'écran d'inscription des agences est resté blanc une journée
+
+`t is not a function`. Le passage des libellés en `t()`, le matin même, avait
+oublié l'import de `useTranslations` dans `RegisterAgency.vue`. Le composant
+ne montait pas : page blanche, sans une seule erreur serveur, avec un HTTP 200
+parfaitement trompeur.
+
+**La page d'acquisition la plus importante du produit**, invisible, pendant
+que je vérifiais des codes de statut au curl en croyant vérifier la page.
+
+*Ce qui n'a rien vu, et pourquoi.* Les tests Inertia contrôlent les données
+envoyées à la vue, pas son rendu dans un navigateur. La couverture des
+traductions lit les chaînes passées à `t()` sans se demander si `t` existe.
+Et `curl` rend le document HTML, qui est correct : tout se joue après, au
+montage de Vue.
+
+D'où le cinquième test du fichier de couverture : aucun composant ne peut
+appeler `t()` sans importer le composable. Un test statique, trois lignes
+d'expression régulière, qui aurait coûté une seconde là où le défaut a coûté
+une journée de page blanche.
+
+**La règle pour la suite** : un écran modifié se regarde dans un navigateur
+avant d'être annoncé. Un 200 ne prouve rien sur une application Inertia.
+
+**256 tests, 1259 assertions.**
