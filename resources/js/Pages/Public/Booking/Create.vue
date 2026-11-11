@@ -27,6 +27,8 @@ const form = useForm({
     accepts_conditions: false,
 });
 
+const photoCassee = ref(false);
+
 const STEPS = ['Dates et options', 'Vos coordonnées', 'Récapitulatif'];
 const step = ref(0);
 
@@ -102,6 +104,30 @@ const ETAPE_DU_CHAMP = {
     client_name: 1, client_phone: 1, client_email: 1, driver_license_number: 1,
 };
 
+/*
+ * Arrive de la liste avec ses dates : on passe directement aux coordonnees.
+ *
+ * Depuis le 2026-11-11, la liste de resultats propose « Reserver » quand le
+ * sejour est connu. Rouvrir le tunnel sur les dates qu'on vient de saisir
+ * demandait un toucher de plus pour ne rien decider. On saute l'etape — une
+ * seule fois, et seulement si le devis du serveur confirme la disponibilite :
+ * le moindre doute ramene a l'ecran des dates, ou le probleme s'explique.
+ * « Precedent » y ramene aussi, et le saut ne se rejoue pas.
+ */
+let sautFait = false;
+watch(quote, (devis) => {
+    if (sautFait || step.value !== 0) return;
+    if (!props.prefill.start_date || !props.prefill.end_date) return;
+    if (devis?.available && !rangeHasTakenDate.value) {
+        sautFait = true;
+        step.value = 1;
+    }
+});
+
+const enLettres = (iso) => (iso
+    ? new Date(iso).toLocaleDateString('fr-DZ', { day: 'numeric', month: 'short' })
+    : '');
+
 const submit = () => form.post(route('bookings.store', props.vehicle.id), {
     onError: (erreurs) => {
         const etapes = Object.keys(erreurs)
@@ -116,20 +142,20 @@ const submit = () => form.post(route('bookings.store', props.vehicle.id), {
 <template>
     <Head :title="`Réserver ${vehicle.title}`" />
 
-    <div class="min-h-screen bg-gray-50">
-        <header class="border-b border-gray-100 bg-white">
+    <div class="min-h-screen bg-creme">
+        <header class="border-b border-encre-100 bg-white">
             <div class="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-                <Link href="/" class="text-xl font-bold tracking-tight text-gray-900">Autokrili</Link>
+                <Link href="/" class="text-xl font-bold tracking-tight text-encre-900">Autokrili</Link>
                 <Link :href="route('vehicle.show', { vehicle: vehicle.id, slug: vehicle.slug })"
-                    class="text-sm text-gray-600 hover:text-gray-900">
+                    class="text-sm text-encre-500 hover:text-encre-900">
                     Retour au véhicule
                 </Link>
             </div>
         </header>
 
         <div class="mx-auto max-w-4xl px-6 py-8">
-            <h1 class="text-2xl font-bold text-gray-900">Réserver {{ vehicle.title }}</h1>
-            <p class="mt-1 text-sm text-gray-600">
+            <h1 class="text-2xl font-bold text-encre-900">Réserver {{ vehicle.title }}</h1>
+            <p class="mt-1 text-sm text-encre-500">
                 {{ vehicle.agency.commercial_name }} — retrait à {{ vehicle.pickup }}
             </p>
 
@@ -142,9 +168,9 @@ const submit = () => form.post(route('bookings.store', props.vehicle.id), {
                  voiture est libre ferait abandonner. -->
             <nav class="mt-6 flex gap-2">
                 <div v-for="(label, index) in STEPS" :key="label"
-                    class="flex-1 rounded-md px-3 py-2 text-center text-sm font-medium"
-                    :class="step === index ? 'bg-gray-900 text-white'
-                        : index < step ? 'bg-gray-200 text-gray-700' : 'bg-white text-gray-400'">
+                    class="flex-1 rounded-bouton px-2 py-2 text-center text-xs font-semibold sm:px-3 sm:text-sm"
+                    :class="step === index ? 'bg-encre-900 text-white'
+                        : index < step ? 'bg-marque-100 text-encre-700' : 'bg-white text-encre-300'">
                     {{ index + 1 }}. {{ t(label) }}
                 </div>
             </nav>
@@ -152,7 +178,7 @@ const submit = () => form.post(route('bookings.store', props.vehicle.id), {
             <div class="mt-6 grid gap-6 lg:grid-cols-[1fr_300px]">
                 <form @submit.prevent="submit" class="space-y-4">
                     <!-- Étape 1 -->
-                    <div v-show="step === 0" class="space-y-4 rounded-xl border border-gray-200 bg-white p-6">
+                    <div v-show="step === 0" class="space-y-4 rounded-carte border border-encre-100 bg-white p-6">
                         <div class="grid gap-4 sm:grid-cols-2">
                             <div>
                                 <InputLabel for="start" :value="t('Date de départ')" />
@@ -179,24 +205,33 @@ const submit = () => form.post(route('bookings.store', props.vehicle.id), {
 
                         <label v-if="vehicle.with_driver_available" class="flex items-center gap-2">
                             <input v-model="form.with_driver" type="checkbox"
-                                class="rounded border-gray-300 text-gray-900 focus:ring-gray-900" />
-                            <span class="text-sm text-gray-700">
+                                class="rounded border-encre-300 text-marque-600 focus:ring-marque" />
+                            <span class="text-sm text-encre-700">
                                 Avec chauffeur (+ {{ price(vehicle.driver_price_per_day) }} DA / jour)
                             </span>
                         </label>
 
-                        <details v-if="unavailableDates.length" class="text-sm text-gray-600">
+                        <details v-if="unavailableDates.length" class="text-sm text-encre-500">
                             <summary class="cursor-pointer">Voir les dates déjà prises</summary>
                             <div class="mt-2 flex flex-wrap gap-1">
                                 <span v-for="d in unavailableDates.slice(0, 60)" :key="d"
-                                    class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">{{ d }}</span>
+                                    class="rounded bg-creme-100 px-1.5 py-0.5 text-xs text-encre-400">{{ d }}</span>
                             </div>
                         </details>
                     </div>
 
                     <!-- Étape 2 -->
-                    <div v-show="step === 1" class="space-y-4 rounded-xl border border-gray-200 bg-white p-6">
-                        <p v-if="!isAuthenticated" class="rounded-md bg-gray-50 p-3 text-sm text-gray-600">
+                    <div v-show="step === 1" class="space-y-4 rounded-carte border border-encre-100 bg-white p-6">
+                        <div class="flex items-center justify-between gap-3 rounded-bouton bg-marque-50 px-3 py-2 text-sm">
+                            <span class="text-encre-700">
+                                <span class="font-semibold text-encre-900">{{ enLettres(form.start_date) }} → {{ enLettres(form.end_date) }}</span>
+                                <template v-if="quote?.total"> · {{ price(quote.total) }} DA</template>
+                            </span>
+                            <button type="button" @click="step = 0" class="shrink-0 font-semibold text-marque-700 hover:text-marque-800">
+                                {{ t('Modifier') }}
+                            </button>
+                        </div>
+                        <p v-if="!isAuthenticated" class="rounded-md bg-creme p-3 text-sm text-encre-500">
                             Pas besoin de créer un compte : il est ouvert automatiquement avec ces
                             informations, et vous y retrouverez vos réservations.
                         </p>
@@ -234,33 +269,33 @@ const submit = () => form.post(route('bookings.store', props.vehicle.id), {
                         <div>
                             <InputLabel for="note" :value="t(&quot;Message à l'agence (facultatif)&quot;)" />
                             <textarea id="note" v-model="form.client_note" rows="3"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900"
+                                class="mt-1 block w-full rounded-md border-encre-200 shadow-sm focus:border-marque focus:ring-marque"
                                 placeholder="Heure d’arrivée souhaitée, précisions…"></textarea>
                         </div>
                     </div>
 
                     <!-- Étape 3 -->
-                    <div v-show="step === 2" class="space-y-4 rounded-xl border border-gray-200 bg-white p-6">
-                        <h2 class="font-semibold text-gray-900">{{ t("Vérifiez avant d'envoyer") }}</h2>
+                    <div v-show="step === 2" class="space-y-4 rounded-carte border border-encre-100 bg-white p-6">
+                        <h2 class="font-semibold text-encre-900">{{ t("Vérifiez avant d'envoyer") }}</h2>
                         <dl class="space-y-1 text-sm">
-                            <div class="flex justify-between"><dt class="text-gray-500">Véhicule</dt><dd class="text-gray-900">{{ vehicle.title }}</dd></div>
-                            <div class="flex justify-between"><dt class="text-gray-500">{{ t('Du') }}</dt><dd class="text-gray-900">{{ form.start_date }}</dd></div>
-                            <div class="flex justify-between"><dt class="text-gray-500">{{ t('Au') }}</dt><dd class="text-gray-900">{{ form.end_date }}</dd></div>
-                            <div class="flex justify-between"><dt class="text-gray-500">{{ t('Retrait') }}</dt><dd class="text-gray-900">{{ vehicle.pickup }}</dd></div>
-                            <div class="flex justify-between"><dt class="text-gray-500">{{ t('Nom') }}</dt><dd class="text-gray-900">{{ form.client_name }}</dd></div>
-                            <div class="flex justify-between"><dt class="text-gray-500">{{ t('Téléphone') }}</dt><dd class="text-gray-900">{{ form.client_phone }}</dd></div>
+                            <div class="flex justify-between"><dt class="text-encre-400">Véhicule</dt><dd class="text-encre-900">{{ vehicle.title }}</dd></div>
+                            <div class="flex justify-between"><dt class="text-encre-400">{{ t('Du') }}</dt><dd class="text-encre-900">{{ form.start_date }}</dd></div>
+                            <div class="flex justify-between"><dt class="text-encre-400">{{ t('Au') }}</dt><dd class="text-encre-900">{{ form.end_date }}</dd></div>
+                            <div class="flex justify-between"><dt class="text-encre-400">{{ t('Retrait') }}</dt><dd class="text-encre-900">{{ vehicle.pickup }}</dd></div>
+                            <div class="flex justify-between"><dt class="text-encre-400">{{ t('Nom') }}</dt><dd class="text-encre-900">{{ form.client_name }}</dd></div>
+                            <div class="flex justify-between"><dt class="text-encre-400">{{ t('Téléphone') }}</dt><dd class="text-encre-900">{{ form.client_phone }}</dd></div>
                         </dl>
 
                         <div v-if="vehicle.agency.rental_conditions"
-                            class="rounded-md bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">
-                            <p class="font-semibold text-gray-800">Conditions de l’agence</p>
+                            class="rounded-md bg-creme p-3 text-xs leading-relaxed text-encre-500">
+                            <p class="font-semibold text-encre-800">Conditions de l’agence</p>
                             <p class="mt-1 whitespace-pre-line">{{ vehicle.agency.rental_conditions }}</p>
                         </div>
 
                         <label class="flex items-start gap-2">
                             <input v-model="form.accepts_conditions" type="checkbox"
-                                class="mt-0.5 rounded border-gray-300 text-gray-900 focus:ring-gray-900" />
-                            <span class="text-sm text-gray-700">
+                                class="mt-0.5 rounded border-encre-300 text-marque-600 focus:ring-marque" />
+                            <span class="text-sm text-encre-700">
                                 J’accepte les conditions de location de l’agence.
                                 <span v-if="vehicle.agency.min_driver_age">
                                     Âge minimum du conducteur : {{ vehicle.agency.min_driver_age }} ans.
@@ -272,7 +307,7 @@ const submit = () => form.post(route('bookings.store', props.vehicle.id), {
                         </label>
                         <InputError :message="form.errors.accepts_conditions" />
 
-                        <p class="text-xs text-gray-500">
+                        <p class="text-xs text-encre-400">
                             Aucun paiement en ligne : le règlement se fait à l’agence, au départ.
                             L’agence a 24 heures pour répondre.
                         </p>
@@ -280,54 +315,58 @@ const submit = () => form.post(route('bookings.store', props.vehicle.id), {
 
                     <div class="flex items-center gap-2">
                         <button v-if="step > 0" type="button" @click="step--"
-                            class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            class="h-12 rounded-bouton border-2 border-encre-100 px-4 text-sm font-semibold text-encre-700 hover:border-marque hover:bg-marque-50">
                             {{ t('Précédent') }}
                         </button>
                         <button v-if="step < 2" type="button" @click="step++" :disabled="!canContinue"
-                            class="ml-auto rounded-md bg-gray-900 px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-40">
+                            class="ml-auto h-12 rounded-bouton bg-marque px-6 text-base font-bold text-encre-900 shadow-marque transition hover:bg-marque-400 disabled:opacity-40 disabled:shadow-none">
                             {{ t('Continuer') }}
                         </button>
                         <button v-else type="submit" :disabled="form.processing"
-                            class="ml-auto rounded-md bg-gray-900 px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50">
+                            class="ml-auto h-12 rounded-bouton bg-marque px-6 text-base font-bold text-encre-900 shadow-marque transition hover:bg-marque-400 disabled:opacity-50">
                             {{ t('Envoyer la demande') }}
                         </button>
                     </div>
                 </form>
 
                 <!-- Le détail du calcul reste visible tout au long (§6.4). -->
-                <aside class="h-fit rounded-xl border border-gray-200 bg-white p-5 lg:sticky lg:top-6">
-                    <img v-if="vehicle.cover_url" :src="vehicle.cover_url" alt=""
-                        class="mb-4 aspect-[4/3] w-full rounded-lg object-cover" />
+                <aside class="h-fit rounded-carte border border-encre-100 bg-white p-5 lg:sticky lg:top-6">
+                    <!-- `@error` : une photo renseignée mais absente du disque
+                         affichait l'icône d'image brisée en tête du récapitulatif
+                         (vu à la capture le 2026-11-11). Mieux vaut rien. -->
+                    <img v-if="vehicle.cover_url && !photoCassee" :src="vehicle.cover_url" alt=""
+                        @error="photoCassee = true"
+                        class="mb-4 aspect-[4/3] w-full rounded-carte object-cover" />
 
-                    <p v-if="quoting" class="text-sm text-gray-500">{{ t('Calcul en cours…') }}</p>
+                    <p v-if="quoting" class="text-sm text-encre-400">{{ t('Calcul en cours…') }}</p>
 
                     <template v-else-if="quote && quote.days">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-encre-400">
                             {{ quote.days }} jour{{ quote.days > 1 ? 's' : '' }}
                         </p>
                         <ul class="mt-3 space-y-1.5 text-sm">
                             <li v-for="line in quote.lines" :key="line.label" class="flex justify-between">
-                                <span class="text-gray-600">
+                                <span class="text-encre-500">
                                     {{ line.label }} × {{ line.quantity }}
-                                    <span class="text-gray-400">({{ price(line.unit_price) }} DA)</span>
+                                    <span class="text-encre-300">({{ price(line.unit_price) }} DA)</span>
                                 </span>
-                                <span class="text-gray-900">{{ price(line.total) }} DA</span>
+                                <span class="text-encre-900">{{ price(line.total) }} DA</span>
                             </li>
                         </ul>
-                        <div class="mt-3 flex justify-between border-t border-gray-200 pt-3">
-                            <span class="font-semibold text-gray-900">{{ t('Total') }}</span>
-                            <span class="text-lg font-bold text-gray-900">{{ price(quote.total) }} DA</span>
+                        <div class="mt-3 flex justify-between border-t border-encre-100 pt-3">
+                            <span class="font-semibold text-encre-900">{{ t('Total') }}</span>
+                            <span class="text-lg font-bold text-encre-900">{{ price(quote.total) }} DA</span>
                         </div>
-                        <p v-if="quote.deposit" class="mt-2 text-xs text-gray-500">
+                        <p v-if="quote.deposit" class="mt-2 text-xs text-encre-400">
                             + caution de {{ price(quote.deposit) }} DA, rendue au retour
                         </p>
                     </template>
 
-                    <p v-else class="text-sm text-gray-500">
+                    <p v-else class="text-sm text-encre-400">
                         {{ t('Choisissez vos dates pour voir le prix.') }}
                     </p>
 
-                    <p class="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500">
+                    <p class="mt-4 border-t border-encre-100 pt-3 text-xs text-encre-400">
                         Agence : {{ vehicle.agency.commercial_name }}<br>
                         Tél. {{ vehicle.agency.phone }}
                     </p>
