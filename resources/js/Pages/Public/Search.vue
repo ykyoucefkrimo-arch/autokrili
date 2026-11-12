@@ -1,4 +1,5 @@
 <script setup>
+import Marque from '@/Components/Marque.vue';
 import VehicleCard from '@/Components/VehicleCard.vue';
 import { useCommunes } from '@/composables/useCommunes';
 import { useTranslations } from '@/composables/useTranslations';
@@ -150,15 +151,12 @@ const changeCommune = (event) => {
     <div class="min-h-screen bg-creme">
         <header class="sticky top-0 z-40 border-b border-encre-800 bg-encre-900">
             <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-                <Link href="/" class="flex items-center gap-2 text-lg font-bold tracking-tight text-white">
-                    <svg viewBox="0 0 48 48" class="h-6 w-6 fill-marque" aria-hidden="true">
-                        <path d="M24 4 L45 44 H34.6 L24 23.2 L13.4 44 H3 Z" /><rect x="15" y="31.5" width="18" height="5.5" rx="1.5" />
-                    </svg>
-                    <span>Auto<span class="text-marque-400">krili</span></span>
+                <Link href="/" class="shrink-0">
+                    <Marque sombre />
                 </Link>
                 <nav class="flex items-center gap-4 text-sm">
                     <Link v-if="$page.props.auth.user" :href="route('dashboard')"
-                        class="rounded-bouton bg-marque px-4 py-2 font-semibold text-encre-900 transition hover:bg-marque-400">
+                        class="rounded-bouton bg-marque px-4 py-2 font-semibold text-white transition hover:bg-marque-600">
                         {{ t('Mon espace') }}
                     </Link>
                     <Link v-else :href="route('login')" class="text-encre-200 hover:text-white">{{ t('Connexion') }}</Link>
@@ -228,7 +226,7 @@ const changeCommune = (event) => {
                                 <path d="M4 6h16M7 12h10M10 18h4" stroke-linecap="round" />
                             </svg>
                             {{ t('Filtres') }}
-                            <span v-if="activeCount" class="rounded-full bg-marque px-2 text-xs font-bold text-encre-900">{{ activeCount }}</span>
+                            <span v-if="activeCount" class="rounded-full bg-marque px-2 text-xs font-bold text-white">{{ activeCount }}</span>
                         </button>
                         <select v-model="form.sort" :aria-label="t('Trier par')"
                             class="h-11 flex-1 rounded-bouton border-2 border-encre-100 bg-white text-sm font-semibold text-encre-900 focus:border-marque focus:ring-marque">

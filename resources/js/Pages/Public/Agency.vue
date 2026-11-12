@@ -1,4 +1,5 @@
 <script setup>
+import Marque from '@/Components/Marque.vue';
 import LocationMap from '@/Components/LocationMap.vue';
 import VehicleCard from '@/Components/VehicleCard.vue';
 import { useTranslations } from '@/composables/useTranslations';
@@ -40,7 +41,7 @@ const whatsappLink = computed(() => {
     <div class="min-h-screen bg-gray-50">
         <header class="border-b border-gray-100 bg-white">
             <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-                <Link href="/" class="text-xl font-bold tracking-tight text-gray-900">Autokrili</Link>
+                <Link href="/"><Marque /></Link>
                 <nav class="flex items-center gap-4 text-sm">
                     <Link :href="route('search')" class="text-gray-600 hover:text-gray-900">{{ t('Tous les véhicules') }}</Link>
                     <Link v-if="$page.props.auth.user" :href="route('dashboard')"

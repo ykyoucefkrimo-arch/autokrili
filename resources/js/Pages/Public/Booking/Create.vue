@@ -1,4 +1,5 @@
 <script setup>
+import Marque from '@/Components/Marque.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -145,7 +146,7 @@ const submit = () => form.post(route('bookings.store', props.vehicle.id), {
     <div class="min-h-screen bg-creme">
         <header class="border-b border-encre-100 bg-white">
             <div class="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-                <Link href="/" class="text-xl font-bold tracking-tight text-encre-900">Autokrili</Link>
+                <Link href="/"><Marque /></Link>
                 <Link :href="route('vehicle.show', { vehicle: vehicle.id, slug: vehicle.slug })"
                     class="text-sm text-encre-500 hover:text-encre-900">
                     Retour au véhicule
@@ -319,11 +320,11 @@ const submit = () => form.post(route('bookings.store', props.vehicle.id), {
                             {{ t('Précédent') }}
                         </button>
                         <button v-if="step < 2" type="button" @click="step++" :disabled="!canContinue"
-                            class="ml-auto h-12 rounded-bouton bg-marque px-6 text-base font-bold text-encre-900 shadow-marque transition hover:bg-marque-400 disabled:opacity-40 disabled:shadow-none">
+                            class="ml-auto h-12 rounded-bouton bg-marque px-6 text-base font-bold text-white shadow-marque transition hover:bg-marque-600 disabled:opacity-40 disabled:shadow-none">
                             {{ t('Continuer') }}
                         </button>
                         <button v-else type="submit" :disabled="form.processing"
-                            class="ml-auto h-12 rounded-bouton bg-marque px-6 text-base font-bold text-encre-900 shadow-marque transition hover:bg-marque-400 disabled:opacity-50">
+                            class="ml-auto h-12 rounded-bouton bg-marque px-6 text-base font-bold text-white shadow-marque transition hover:bg-marque-600 disabled:opacity-50">
                             {{ t('Envoyer la demande') }}
                         </button>
                     </div>

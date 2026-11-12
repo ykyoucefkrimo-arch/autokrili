@@ -1,4 +1,5 @@
 <script setup>
+import Marque from '@/Components/Marque.vue';
 import { useTranslations } from '@/composables/useTranslations';
 import { Head, Link } from '@inertiajs/vue3';
 
@@ -17,7 +18,7 @@ const price = (v) => Number(v ?? 0).toLocaleString('fr-DZ');
     <div class="min-h-screen bg-gray-50">
         <header class="border-b border-gray-100 bg-white">
             <div class="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-                <Link href="/" class="text-xl font-bold tracking-tight text-gray-900">Autokrili</Link>
+                <Link href="/"><Marque /></Link>
                 <Link :href="route('bookings.index')" class="text-sm text-gray-600 hover:text-gray-900">
                     {{ t('Mes réservations') }}
                 </Link>

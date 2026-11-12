@@ -1,4 +1,5 @@
 <script setup>
+import Marque from '@/Components/Marque.vue';
 import { useTranslations } from '@/composables/useTranslations';
 import { Head, Link } from '@inertiajs/vue3';
 
@@ -28,7 +29,7 @@ const LINKS = [
     <div class="min-h-screen bg-white">
         <header class="border-b border-gray-100">
             <div class="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-                <Link href="/" class="text-xl font-bold tracking-tight text-gray-900">Autokrili</Link>
+                <Link href="/"><Marque /></Link>
                 <nav class="flex items-center gap-4 text-sm">
                     <Link :href="route('search')" class="text-gray-600 hover:text-gray-900">{{ t('Véhicules') }}</Link>
                     <Link :href="route('agency.register')"
