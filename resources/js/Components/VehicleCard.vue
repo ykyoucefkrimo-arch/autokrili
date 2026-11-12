@@ -157,7 +157,7 @@ const photoCassee = ref(false);
                     <p class="text-encre-300">{{ vehicle.reviews_count }} {{ t('avis') }}</p>
                 </div>
                 <Link v-if="avecSejour" :href="lienReserver"
-                    class="relative z-10 shrink-0 rounded-bouton bg-marque px-4 py-2 text-sm font-bold text-encre-900 shadow-marque transition hover:bg-marque-400">
+                    class="relative z-10 shrink-0 rounded-bouton bg-marque px-4 py-2 text-sm font-bold text-white shadow-marque transition hover:bg-marque-600">
                     {{ t('Réserver') }}
                 </Link>
             </div>

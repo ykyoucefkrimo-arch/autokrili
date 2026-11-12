@@ -1,4 +1,5 @@
 <script setup>
+import Marque from '@/Components/Marque.vue';
 import VehicleCard from '@/Components/VehicleCard.vue';
 import { useTranslations } from '@/composables/useTranslations';
 import { Head, Link } from '@inertiajs/vue3';
@@ -72,7 +73,7 @@ const whatsappLink = computed(() => {
     <div class="min-h-screen bg-gray-50">
         <header class="border-b border-gray-100 bg-white">
             <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-                <Link href="/" class="text-xl font-bold tracking-tight text-gray-900">Autokrili</Link>
+                <Link href="/"><Marque /></Link>
                 <nav class="flex items-center gap-4 text-sm">
                     <Link :href="route('search')" class="text-gray-600 hover:text-gray-900">{{ t('Tous les véhicules') }}</Link>
                     <Link v-if="$page.props.auth.user" :href="route('dashboard')"
@@ -187,7 +188,7 @@ const whatsappLink = computed(() => {
 
                         <div class="mt-6 space-y-2">
                             <Link :href="lienReservation"
-                                class="block w-full rounded-md bg-gray-900 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-gray-800">
+                                class="block w-full rounded-bouton bg-marque px-4 py-3 text-center text-base font-bold text-white shadow-marque transition hover:bg-marque-600">
                                 {{ t('Réserver ce véhicule') }}
                             </Link>
                             <p class="text-center text-xs text-gray-500">

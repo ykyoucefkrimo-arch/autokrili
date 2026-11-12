@@ -2,21 +2,20 @@ import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
 
 /**
- * Charte Autokrili — posée le 2026-10-18.
+ * Charte Autokrili — refaite le 2026-11-12, d'après le visuel publicitaire
+ * fourni par le propriétaire.
  *
- * Avant : la configuration de Breeze, sans la moindre couleur. Le site public
- * était en noir et blanc (`bg-gray-900` pour les boutons), les espaces agence
- * et administration en indigo — l'indigo de Breeze, que personne n'avait
- * choisi. Deux styles cohabitaient sans décision.
+ * Avant : noir et ambre (2026-10-18). Désormais **violet sur nuit** : un
+ * violet franc pour la marque, un noir teinté de violet pour l'encre, comme
+ * le visuel. Le violet se distingue encore mieux que l'ambre d'un marché de
+ * comparateurs bleus.
  *
- * **Noir et ambre**, décidé par le propriétaire. Le noir vient du favicon, il
- * existait déjà. L'ambre apporte l'énergie du départ et du soleil, et il
- * distingue d'un marché où tous les comparateurs de voyage sont bleus.
+ * Les noms restent SÉMANTIQUES — `bg-marque`, jamais `bg-violet-500` : c'est
+ * ce qui a permis ce changement de teinte sans relire tout le code.
  *
- * Les noms sont en français et SÉMANTIQUES — `bg-marque`, pas `bg-amber-500`.
- * C'est ce qui permettra de changer la teinte un jour sans relire deux cents
- * fichiers. Les gris de Tailwind restent disponibles pour les bordures et les
- * textes secondaires : les redéfinir n'apporterait rien.
+ * Une conséquence à retenir : sur le violet, le texte des boutons est BLANC.
+ * Sur l'ambre il était foncé ; laissé foncé sur du violet, il devenait
+ * illisible (contraste inférieur à 4,5:1).
  */
 export default {
     content: [
@@ -37,40 +36,40 @@ export default {
                  * 900 pour les grandes surfaces, 950 pour le pied de page.
                  */
                 encre: {
-                    50: '#F6F6F7',
-                    100: '#E2E2E5',
-                    200: '#C5C5CB',
-                    300: '#9D9DA6',
-                    400: '#6F6F7A',
-                    500: '#4A4A54',
-                    600: '#35353D',
-                    700: '#26262C',
-                    800: '#1A1A1F',
-                    900: '#111113',
-                    950: '#0A0A0C',
-                    DEFAULT: '#111113',
+                    50: '#F7F6FB',
+                    100: '#E6E4EF',
+                    200: '#CBC8DA',
+                    300: '#A29EB8',
+                    400: '#757090',
+                    500: '#4F4A68',
+                    600: '#38344D',
+                    700: '#28253A',
+                    800: '#1B1929',
+                    900: '#12101E',
+                    950: '#0A0914',
+                    DEFAULT: '#12101E',
                 },
 
                 /*
-                 * La marque : l'ambre.
+                 * La marque : le violet du visuel.
                  *
-                 * 500 est la teinte de référence, celle des boutons. 600 pour
-                 * le survol, 400 pour un accent sur fond sombre — sur du noir,
-                 * le 500 manque de luminosité et le texte dessus devient
-                 * illisible.
+                 * 500 est la teinte de référence (fonds de boutons, texte
+                 * blanc : 5,6:1). 600 pour le survol — plus sombre, pour que
+                 * le texte blanc reste lisible. 400 pour un accent sur fond
+                 * nuit, où le 500 manque de lumière.
                  */
                 marque: {
-                    50: '#FFFBEB',
-                    100: '#FEF3C7',
-                    200: '#FDE68A',
-                    300: '#FCD34D',
-                    400: '#FBBF24',
-                    500: '#F59E0B',
-                    600: '#D97706',
-                    700: '#B45309',
-                    800: '#92400E',
-                    900: '#78350F',
-                    DEFAULT: '#F59E0B',
+                    50: '#F5EFFF',
+                    100: '#EBDFFF',
+                    200: '#D6BFFF',
+                    300: '#BA92FF',
+                    400: '#A066FF',
+                    500: '#7C3AED',
+                    600: '#6A28D9',
+                    700: '#561FB3',
+                    800: '#451B8E',
+                    900: '#391972',
+                    DEFAULT: '#7C3AED',
                 },
 
                 /*
@@ -81,9 +80,11 @@ export default {
                  * et le texte s'y lit mieux sur un écran de téléphone en plein
                  * soleil — ce qui est exactement la situation de nos visiteurs.
                  */
+                // Un blanc légèrement lavande : le crème chaud de l'ambre jurait
+                // avec le violet.
                 creme: {
-                    DEFAULT: '#FBF9F6',
-                    100: '#F5F2ED',
+                    DEFAULT: '#F8F7FC',
+                    100: '#F0EEF7',
                 },
             },
 
@@ -105,9 +106,9 @@ export default {
              * pur : une ombre grise sur un fond crème se voit comme une tache.
              */
             boxShadow: {
-                carte: '0 1px 2px 0 rgb(17 17 19 / 0.04), 0 4px 16px -2px rgb(17 17 19 / 0.08)',
-                'carte-survol': '0 2px 4px 0 rgb(17 17 19 / 0.06), 0 12px 32px -4px rgb(17 17 19 / 0.14)',
-                marque: '0 4px 14px -2px rgb(245 158 11 / 0.35)',
+                carte: '0 1px 2px 0 rgb(18 16 30 / 0.04), 0 4px 16px -2px rgb(18 16 30 / 0.08)',
+                'carte-survol': '0 2px 4px 0 rgb(18 16 30 / 0.06), 0 12px 32px -4px rgb(18 16 30 / 0.14)',
+                marque: '0 4px 14px -2px rgb(124 58 237 / 0.4)',
             },
         },
     },

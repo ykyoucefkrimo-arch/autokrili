@@ -1,4 +1,5 @@
 <script setup>
+import Marque from '@/Components/Marque.vue';
 import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
 import VehicleCard from '@/Components/VehicleCard.vue';
 import { useTranslations } from '@/composables/useTranslations';
@@ -82,8 +83,8 @@ const submitSearch = () => {
         -->
         <header class="absolute inset-x-0 top-0 z-40">
             <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-                <Link href="/" class="shrink-0 text-lg font-bold tracking-tight text-white drop-shadow sm:text-xl">
-                    Auto<span class="text-marque-400">krili</span>
+                <Link href="/" class="shrink-0 drop-shadow">
+                    <Marque sombre />
                 </Link>
                 <!--
                     Le menu deborde a 390 px si on ne le reduit pas.
@@ -103,7 +104,7 @@ const submitSearch = () => {
                         {{ t('Tous les véhicules') }}
                     </Link>
                     <Link v-if="$page.props.auth.user" :href="route('dashboard')"
-                        class="whitespace-nowrap rounded-bouton bg-marque px-2.5 py-1.5 font-semibold text-encre-900 shadow-marque transition hover:bg-marque-400 sm:px-5 sm:py-2">
+                        class="whitespace-nowrap rounded-bouton bg-marque px-2.5 py-1.5 font-semibold text-white shadow-marque transition hover:bg-marque-600 sm:px-5 sm:py-2">
                         {{ t('Mon espace') }}
                     </Link>
                     <template v-else>
@@ -112,7 +113,7 @@ const submitSearch = () => {
                             Connexion
                         </Link>
                         <Link :href="route('agency.register')"
-                            class="whitespace-nowrap rounded-bouton bg-marque px-2.5 py-1.5 font-semibold text-encre-900 shadow-marque transition hover:bg-marque-400 sm:px-5 sm:py-2">
+                            class="whitespace-nowrap rounded-bouton bg-marque px-2.5 py-1.5 font-semibold text-white shadow-marque transition hover:bg-marque-600 sm:px-5 sm:py-2">
                             <span class="sm:hidden">{{ t('Mon agence') }}</span>
                             <span class="hidden sm:inline">{{ t('Inscrire mon agence') }}</span>
                         </Link>
@@ -220,7 +221,7 @@ const submitSearch = () => {
                             </label>
 
                             <button type="submit"
-                                class="col-span-2 mt-1 h-14 rounded-bouton bg-marque px-8 text-lg font-bold text-encre-900 shadow-marque transition hover:bg-marque-400 lg:col-span-1 lg:mt-0 lg:h-[52px] lg:text-base">
+                                class="col-span-2 mt-1 h-14 rounded-bouton bg-marque px-8 text-lg font-bold text-white shadow-marque transition hover:bg-marque-600 lg:col-span-1 lg:mt-0 lg:h-[52px] lg:text-base">
                                 {{ t('Rechercher') }}
                             </button>
                         </form>
@@ -268,7 +269,7 @@ const submitSearch = () => {
                     être présente dès le lancement.
                 </p>
                 <Link :href="route('agency.register')"
-                    class="mt-6 inline-block rounded-bouton bg-marque px-5 py-2.5 text-sm font-semibold text-encre-900 shadow-marque transition hover:bg-marque-400">
+                    class="mt-6 inline-block rounded-bouton bg-marque px-5 py-2.5 text-sm font-semibold text-white shadow-marque transition hover:bg-marque-600">
                     Inscrire mon agence
                 </Link>
             </section>
@@ -321,7 +322,7 @@ const submitSearch = () => {
                             votre registre de commerce est vérifié sous 48&nbsp;heures ouvrées.
                         </p>
                         <Link :href="route('agency.register')"
-                            class="mt-6 inline-block rounded-bouton bg-marque px-5 py-2.5 text-sm font-semibold text-encre-900 shadow-marque transition hover:bg-marque-400">
+                            class="mt-6 inline-block rounded-bouton bg-marque px-5 py-2.5 text-sm font-semibold text-white shadow-marque transition hover:bg-marque-600">
                             {{ t('Inscrire mon agence') }}
                         </Link>
                     </div>
