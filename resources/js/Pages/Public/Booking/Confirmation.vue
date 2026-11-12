@@ -17,8 +17,8 @@ const price = (v) => Number(v ?? 0).toLocaleString('fr-DZ');
 
     <div class="min-h-screen bg-gray-50">
         <header class="border-b border-gray-100 bg-white">
-            <div class="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-                <Link href="/"><Marque /></Link>
+            <div class="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-4">
+                <Link href="/" class="shrink-0"><Marque /></Link>
                 <Link :href="route('bookings.index')" class="text-sm text-gray-600 hover:text-gray-900">
                     {{ t('Mes réservations') }}
                 </Link>
