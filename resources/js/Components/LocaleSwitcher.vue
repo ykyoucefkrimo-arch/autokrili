@@ -6,7 +6,9 @@ const { locale } = useTranslations();
 
 const LOCALES = [
     { code: 'fr', label: 'FR' },
-    { code: 'ar', label: 'ع' },
+    // « AR » plutôt que la lettre ع : à côté de « FR », le visiteur lit tout de suite les deux choix
+    // comme des langues ; la lettre seule passait pour une icône.
+    { code: 'ar', label: 'AR' },
 ];
 
 const switchTo = (code) => {
