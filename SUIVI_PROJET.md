@@ -447,6 +447,40 @@ texte vit dans `PageController` et non dans les gabarits Vue : c'est de la
 prose juridique et éditoriale qu'un juriste peut avoir à amender, et la
 chercher dans un template n'est pas la bonne façon.
 
+### Recherche simplifiée, dans le style de la publicité (2026-11-11)
+
+Demande du propriétaire : que le site suive le parcours de la publicité vidéo —
+la wilaya, les dates, « Rechercher », et les voitures en liste sur le téléphone.
+
+- **Accueil** : trois champs (wilaya, départ, retour) et un bouton pleine largeur
+  sur téléphone. **La commune quitte le premier écran** : elle faisait attendre une
+  seconde liste pour une précision que peu donnent d'emblée. Elle reste sur la page
+  de résultats.
+- **Résultats** (`Search.vue`) : la même recherche en tête, modifiable sur place ;
+  le résumé « Alger · 14 nov. → 17 nov. · 4 jours », puis « Véhicules libres ».
+  **Les filtres de confort sont repliés derrière un bouton sur téléphone** (onze
+  champs précédaient la première voiture), avec le nombre de filtres actifs. Page
+  repassée aux jetons de la charte : plus aucune classe `gray-`.
+- **Carte véhicule** : nouvelle option `liste` — horizontale sur téléphone (photo
+  à gauche), verticale à partir de `sm`. L'accueil garde la grille. Avec des dates,
+  la carte affiche « Libre » et un bouton **« Réserver »** qui ouvre le tunnel avec
+  le séjour déjà rempli. Ces deux mentions sont vraies par construction : avec des
+  dates, le serveur ne renvoie que des voitures libres, et `Vehicle::visible()` ne
+  montre que les agences approuvées (d'où « ✓ » devant le nom de l'agence).
+- **Tunnel** (`Booking/Create.vue`) : arrivé avec des dates que le devis confirme
+  libres, il **saute l'étape des dates** une seule fois et ouvre sur les
+  coordonnées, avec un rappel « dates · total · Modifier ». Sans dates, ou au
+  moindre doute, il reste sur l'étape 1. Repassé aux jetons de la charte ; la photo
+  du récapitulatif a désormais un repli `@error` (image cassée vue à la capture).
+- Cinq libellés ajoutés en français et en arabe (`Libre`, `Réserver`, `Modifier`,
+  `Véhicules libres`, `Toute l’Algérie`).
+
+Vérifié : `npm run build`, **276 tests verts** (avant le dernier correctif de
+l'image, qui ne touche que le gabarit), captures à 390 et 1440 px de l'accueil, de
+la liste avec et sans dates et du tunnel avec et sans dates, **aucun débordement**
+à 390 px. Pas vérifié : un vrai téléphone, et l'affichage en arabe (RTL) des
+nouvelles cartes.
+
 ### Ce qui reste sur la phase 4
 
 **La carte des résultats de recherche** (§7.1, « liste + carte »). Elle est

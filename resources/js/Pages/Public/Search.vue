@@ -104,8 +104,19 @@ const sejour = computed(() => {
     return { jours, depart, retour };
 });
 
-const enLettres = (date) =>
-    date.toLocaleDateString('fr-DZ', { day: 'numeric', month: 'long', year: 'numeric' });
+// « 14 → 17 nov. » : la forme courte de la publicite, lisible d'un coup d'oeil.
+const court = (date) => date.toLocaleDateString('fr-DZ', { day: 'numeric', month: 'short' });
+
+/*
+ * Les filtres de confort, replies sur telephone — 2026-11-11.
+ *
+ * Ils occupaient tout le premier ecran : onze champs empiles AVANT la
+ * premiere voiture. Le visiteur venait de choisir sa wilaya et ses dates ;
+ * il voyait un formulaire, pas une reponse. Ils restent a un toucher, et le
+ * bouton dit combien sont actifs pour qu'un filtre oublie ne cache pas des
+ * voitures en silence. Sur ordinateur, la colonne reste ouverte.
+ */
+const filtresOuverts = ref(false);
 
 // Le sejour suit le visiteur sur la fiche du vehicule, ou le formulaire de
 // reservation l'attend deja sous `start` et `end`.
@@ -136,99 +147,111 @@ const changeCommune = (event) => {
 <template>
     <Head :title="title" />
 
-    <div class="min-h-screen bg-gray-50">
-        <header class="sticky top-0 z-40 border-b border-gray-100 bg-white">
-            <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-                <Link href="/" class="text-xl font-bold tracking-tight text-gray-900">Autokrili</Link>
+    <div class="min-h-screen bg-creme">
+        <header class="sticky top-0 z-40 border-b border-encre-800 bg-encre-900">
+            <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+                <Link href="/" class="flex items-center gap-2 text-lg font-bold tracking-tight text-white">
+                    <svg viewBox="0 0 48 48" class="h-6 w-6 fill-marque" aria-hidden="true">
+                        <path d="M24 4 L45 44 H34.6 L24 23.2 L13.4 44 H3 Z" /><rect x="15" y="31.5" width="18" height="5.5" rx="1.5" />
+                    </svg>
+                    <span>Auto<span class="text-marque-400">krili</span></span>
+                </Link>
                 <nav class="flex items-center gap-4 text-sm">
                     <Link v-if="$page.props.auth.user" :href="route('dashboard')"
-                        class="rounded-md bg-gray-900 px-4 py-2 font-medium text-white hover:bg-gray-800">
-                        Mon espace
+                        class="rounded-bouton bg-marque px-4 py-2 font-semibold text-encre-900 transition hover:bg-marque-400">
+                        {{ t('Mon espace') }}
                     </Link>
-                    <Link v-else :href="route('login')" class="text-gray-600 hover:text-gray-900">{{ t('Connexion') }}</Link>
+                    <Link v-else :href="route('login')" class="text-encre-200 hover:text-white">{{ t('Connexion') }}</Link>
                 </nav>
             </div>
         </header>
 
-        <div class="mx-auto max-w-6xl px-6 py-8">
-            <nav class="text-xs text-gray-500">
-                <Link href="/" class="hover:text-gray-900">Accueil</Link>
-                <template v-if="place.wilaya">
-                    <span class="mx-1">/</span>
-                    <Link :href="route('search.wilaya', { wilaya: place.wilaya.slug })" class="hover:text-gray-900">
-                        {{ place.wilaya.name_fr }}
-                    </Link>
-                </template>
-                <template v-if="place.commune">
-                    <span class="mx-1">/</span><span class="text-gray-700">{{ place.commune.name_fr }}</span>
-                </template>
-            </nav>
+        <div class="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8">
+            <!--
+                La recherche, en haut et modifiable sur place : la meme que sur
+                l'accueil — wilaya, depart, retour. Un visiteur arrive par un
+                lien indexe n'est jamais passe par l'accueil ; c'est ici qu'il
+                decouvre qu'il peut donner ses dates.
+            -->
+            <div class="grid grid-cols-2 gap-3 rounded-carte bg-white p-3 shadow-carte sm:p-4 lg:grid-cols-[minmax(0,1fr)_11rem_11rem]">
+                <label class="col-span-2 flex min-w-0 flex-col lg:col-span-1">
+                    <span class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-encre-400">{{ t('Wilaya') }}</span>
+                    <select :value="place.wilaya?.id ?? ''" @change="changeWilaya"
+                        class="h-12 rounded-bouton border-2 border-encre-100 text-base font-semibold text-encre-900 focus:border-marque focus:ring-marque">
+                        <option value="">{{ t('Toutes les wilayas') }}</option>
+                        <option v-for="w in wilayas" :key="w.id" :value="w.id">{{ w.name_fr }}</option>
+                    </select>
+                </label>
+                <label class="flex min-w-0 flex-col">
+                    <span class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-encre-400">{{ t('Départ') }}</span>
+                    <input v-model="form.start" type="date" :min="aujourdhui"
+                        class="h-12 min-w-0 rounded-bouton border-2 border-encre-100 text-base font-semibold text-encre-900 focus:border-marque focus:ring-marque" />
+                </label>
+                <label class="flex min-w-0 flex-col">
+                    <span class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-encre-400">{{ t('Retour') }}</span>
+                    <input v-model="form.end" type="date" :min="form.start || aujourdhui"
+                        class="h-12 min-w-0 rounded-bouton border-2 border-encre-100 text-base font-semibold text-encre-900 focus:border-marque focus:ring-marque" />
+                </label>
+            </div>
 
-            <div class="mt-2 flex flex-wrap items-baseline justify-between gap-3">
-                <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
-                <p class="text-sm text-gray-600">
+            <!-- Le resume de la publicite : « Alger · 14 → 17 nov. · 3 jours »,
+                 puis ce que la liste contient. -->
+            <div class="mt-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-encre-400">
+                        {{ place.commune?.name_fr ?? place.wilaya?.name_fr ?? t('Toute l’Algérie') }}
+                        <template v-if="sejour">
+                            · {{ court(sejour.depart) }} → {{ court(sejour.retour) }}
+                            · {{ sejour.jours }} {{ sejour.jours > 1 ? t('jours') : t('jour') }}
+                        </template>
+                    </p>
+                    <h1 class="text-2xl font-bold tracking-tight text-encre-900 sm:text-3xl">
+                        {{ sejour ? t('Véhicules libres') : title }}
+                    </h1>
+                </div>
+                <p class="text-sm text-encre-500">
                     {{ vehicles.total }} {{ vehicles.total > 1 ? t('véhicules') : t('véhicule') }}
                 </p>
             </div>
+            <p v-if="!sejour" class="mt-1 text-sm text-encre-500">
+                {{ t('Indiquez vos dates pour ne voir que les véhicules libres.') }}
+            </p>
 
-            <!--
-                Le sejour, en haut et modifiable sur place.
+            <div class="mt-5 grid gap-6 lg:grid-cols-[260px_1fr]">
+                <aside>
+                    <!-- Sur telephone : un bouton, et le panneau s'ouvre dessous. -->
+                    <div class="flex items-center gap-2 lg:hidden">
+                        <button type="button" @click="filtresOuverts = !filtresOuverts"
+                            class="flex h-11 flex-1 items-center justify-center gap-2 rounded-bouton border-2 border-encre-100 bg-white text-sm font-semibold text-encre-900"
+                            :aria-expanded="filtresOuverts">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+                                <path d="M4 6h16M7 12h10M10 18h4" stroke-linecap="round" />
+                            </svg>
+                            {{ t('Filtres') }}
+                            <span v-if="activeCount" class="rounded-full bg-marque px-2 text-xs font-bold text-encre-900">{{ activeCount }}</span>
+                        </button>
+                        <select v-model="form.sort" :aria-label="t('Trier par')"
+                            class="h-11 flex-1 rounded-bouton border-2 border-encre-100 bg-white text-sm font-semibold text-encre-900 focus:border-marque focus:ring-marque">
+                            <option v-for="(label, key) in SORT_LABELS" :key="key" :value="key">{{ t(label) }}</option>
+                        </select>
+                    </div>
 
-                Il est affiche meme vide : un visiteur arrive par un lien
-                indexe n'est jamais passe par l'accueil, et c'est ici qu'il
-                decouvre qu'il peut filtrer sur ses dates.
-            -->
-            <div class="mt-4 flex flex-wrap items-end gap-3 rounded-carte border border-marque-200 bg-marque-50 px-4 py-3">
-                <label class="flex flex-col">
-                    <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-500">
-                        {{ t('Départ') }}
-                    </span>
-                    <input v-model="form.start" type="date" :min="aujourdhui"
-                        class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
-                </label>
-                <label class="flex flex-col">
-                    <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-500">
-                        {{ t('Retour') }}
-                    </span>
-                    <input v-model="form.end" type="date" :min="form.start || aujourdhui"
-                        class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
-                </label>
-
-                <p v-if="sejour" class="pb-2 text-sm text-encre-700">
-                    <span class="font-semibold">{{ sejour.jours }}</span>
-                    {{ sejour.jours > 1 ? t('jours') : t('jour') }}
-                    <span class="text-encre-500">
-                        — {{ t('seuls les véhicules libres sont affichés') }}
-                    </span>
-                </p>
-                <p v-else class="pb-2 text-sm text-encre-500">
-                    {{ t('Indiquez vos dates pour ne voir que les véhicules libres.') }}
-                </p>
-            </div>
-
-            <div class="mt-6 grid gap-6 lg:grid-cols-[260px_1fr]">
-                <aside class="space-y-4">
-                    <div class="rounded-xl border border-gray-200 bg-white p-4">
+                    <div class="mt-3 rounded-carte border border-encre-100 bg-white p-4 shadow-carte lg:mt-0 lg:block"
+                        :class="filtresOuverts ? 'block' : 'hidden'">
                         <div class="flex items-center justify-between">
-                            <h2 class="text-sm font-semibold text-gray-900">{{ t('Filtres') }}</h2>
-                            <button v-if="activeCount" @click="reset" class="text-xs text-gray-500 hover:text-gray-900">
+                            <h2 class="text-sm font-semibold text-encre-900">{{ t('Filtres') }}</h2>
+                            <button v-if="activeCount" @click="reset" class="text-xs font-medium text-encre-500 hover:text-encre-900">
                                 Effacer ({{ activeCount }})
                             </button>
                         </div>
 
                         <div class="mt-4 space-y-3 text-sm">
                             <input v-model="form.search" type="search" :placeholder="t('Marque ou modèle')"
-                                class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" />
-
-                            <select :value="place.wilaya?.id ?? ''" @change="changeWilaya"
-                                class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900">
-                                <option value="">{{ t('Toutes les wilayas') }}</option>
-                                <option v-for="w in wilayas" :key="w.id" :value="w.id">{{ w.name_fr }}</option>
-                            </select>
+                                class="w-full rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
 
                             <select v-if="place.wilaya" :value="place.commune?.id ?? ''" @change="changeCommune"
                                 :disabled="loadingCommunes"
-                                class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900 disabled:bg-gray-100">
+                                class="w-full rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque disabled:bg-encre-50">
                                 <option value="">
                                     {{ loadingCommunes ? t('Chargement…') : t('Toutes les communes') }}
                                 </option>
@@ -236,25 +259,25 @@ const changeCommune = (event) => {
                             </select>
 
                             <select v-model="form.category"
-                                class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                                class="w-full rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque">
                                 <option value="">{{ t('Toutes catégories') }}</option>
                                 <option v-for="c in options.categories" :key="c" :value="c">{{ LABELS[c] }}</option>
                             </select>
 
                             <select v-model="form.transmission"
-                                class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                                class="w-full rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque">
                                 <option value="">{{ t('Toutes boîtes') }}</option>
                                 <option v-for="t in options.transmissions" :key="t" :value="t">{{ LABELS[t] }}</option>
                             </select>
 
                             <select v-model="form.fuel"
-                                class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                                class="w-full rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque">
                                 <option value="">{{ t('Tous carburants') }}</option>
                                 <option v-for="f in options.fuels" :key="f" :value="f">{{ LABELS[f] }}</option>
                             </select>
 
                             <select v-model="form.seats"
-                                class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                                class="w-full rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque">
                                 <option value="">{{ t('Nombre de places') }}</option>
                                 <option value="4">4 places et plus</option>
                                 <option value="5">5 places et plus</option>
@@ -263,19 +286,19 @@ const changeCommune = (event) => {
                             </select>
 
                             <div>
-                                <label class="text-xs text-gray-600">{{ t('Prix maximum par jour (DA)') }}</label>
+                                <label class="text-xs text-encre-500">{{ t('Prix maximum par jour (DA)') }}</label>
                                 <input v-model="form.price_max" type="number" step="500" :placeholder="t('Sans limite')"
-                                    class="mt-1 w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" />
+                                    class="mt-1 w-full rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
                             </div>
 
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <label class="flex items-center gap-2 text-sm text-encre-700">
                                 <input type="checkbox" true-value="1" false-value="" v-model="form.air_conditioning"
-                                    class="rounded border-gray-300 text-gray-900 focus:ring-gray-900" />
+                                    class="rounded border-encre-300 text-marque-600 focus:ring-marque" />
                                 {{ t('Climatisation') }}
                             </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <label class="flex items-center gap-2 text-sm text-encre-700">
                                 <input type="checkbox" true-value="1" false-value="" v-model="form.with_driver"
-                                    class="rounded border-gray-300 text-gray-900 focus:ring-gray-900" />
+                                    class="rounded border-encre-300 text-marque-600 focus:ring-marque" />
                                 {{ t('Avec chauffeur') }}
                             </label>
                         </div>
@@ -283,35 +306,36 @@ const changeCommune = (event) => {
                 </aside>
 
                 <div>
-                    <div class="mb-4 flex items-center justify-end gap-2">
-                        <label class="text-sm text-gray-600">{{ t('Trier par') }}</label>
+                    <div class="mb-4 hidden items-center justify-end gap-2 lg:flex">
+                        <label class="text-sm text-encre-500">{{ t('Trier par') }}</label>
                         <select v-model="form.sort"
-                            class="rounded-md border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                            class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque">
                             <option v-for="(label, key) in SORT_LABELS" :key="key" :value="key">{{ t(label) }}</option>
                         </select>
                     </div>
 
-                    <div v-if="!vehicles.data.length" class="rounded-xl border border-gray-200 bg-white p-12 text-center">
-                        <p class="font-medium text-gray-900">{{ t('Aucun véhicule ne correspond') }}</p>
-                        <p class="mx-auto mt-2 max-w-md text-sm text-gray-600">
+                    <div v-if="!vehicles.data.length" class="rounded-carte border border-encre-100 bg-white p-10 text-center shadow-carte">
+                        <p class="font-semibold text-encre-900">{{ t('Aucun véhicule ne correspond') }}</p>
+                        <p class="mx-auto mt-2 max-w-md text-sm text-encre-500">
                             {{ t('Élargissez la recherche : une autre commune, une autre catégorie, ou un prix maximum plus haut.') }}
                         </p>
                         <button v-if="activeCount" @click="reset"
-                            class="mt-4 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            class="mt-4 rounded-bouton border-2 border-encre-100 px-4 py-2 text-sm font-semibold text-encre-900 hover:border-marque hover:bg-marque-50">
                             {{ t('Effacer les filtres') }}
                         </button>
                     </div>
 
-                    <div v-else class="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
+                    <!-- Une voiture par ligne sur telephone, la grille a partir de `sm`. -->
+                    <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
                         <VehicleCard v-for="vehicle in vehicles.data" :key="vehicle.id" :vehicle="vehicle"
-                            :start="form.start" :end="form.end" />
+                            :start="form.start" :end="form.end" liste />
                     </div>
 
                     <div v-if="vehicles.links.length > 3" class="mt-8 flex flex-wrap justify-center gap-1">
                         <component v-for="link in vehicles.links" :key="link.label"
                             :is="link.url ? Link : 'span'" :href="link.url"
-                            class="rounded px-3 py-1.5 text-sm"
-                            :class="link.active ? 'bg-gray-900 text-white' : link.url ? 'bg-white text-gray-700 hover:bg-gray-100' : 'text-gray-400'"
+                            class="rounded-bouton px-3 py-1.5 text-sm"
+                            :class="link.active ? 'bg-encre-900 font-semibold text-white' : link.url ? 'bg-white text-encre-700 hover:bg-marque-50' : 'text-encre-300'"
                             v-html="link.label" />
                     </div>
                 </div>

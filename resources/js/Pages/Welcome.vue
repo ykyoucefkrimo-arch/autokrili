@@ -2,7 +2,6 @@
 import LocaleSwitcher from '@/Components/LocaleSwitcher.vue';
 import VehicleCard from '@/Components/VehicleCard.vue';
 import { useTranslations } from '@/composables/useTranslations';
-import { useCommunes } from '@/composables/useCommunes';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 
@@ -24,8 +23,15 @@ const CATEGORY_LABELS = {
     '4x4': '4x4', luxe: 'Luxe', minibus: 'Minibus',
 };
 
+/*
+ * Trois champs, pas quatre — simplifie le 2026-11-11.
+ *
+ * La commune a quitte le premier ecran. Elle obligeait a attendre une
+ * seconde liste avant de chercher, pour une precision que presque personne
+ * ne donne d'emblee : on loue « a Alger », pas « a Bab Ezzouar ». Elle reste
+ * disponible sur la page de resultats, pour qui veut affiner.
+ */
 const wilayaId = ref('');
-const communeId = ref('');
 
 /*
  * Les dates, posees le 2026-10-18.
@@ -48,13 +54,6 @@ watch(depart, (valeur) => {
     if (valeur && retour.value && retour.value < valeur) retour.value = valeur;
 });
 
-// Les communes arrivent par le point d'acces dedie quand la wilaya change :
-// 1541 communes livrees avec la page d'accueil seraient payees par chaque
-// visiteur, pour une liste que la plupart ne deroulent jamais.
-const { communes, loading: loadingCommunes } = useCommunes(wilayaId, props.searchWilayas, {
-    onChange: () => (communeId.value = ''),
-});
-
 const submitSearch = () => {
     const wilaya = props.searchWilayas.find((w) => w.id === Number(wilayaId.value));
 
@@ -68,11 +67,7 @@ const submitSearch = () => {
     // demandée au 7.2, et celle qu'on peut envoyer par WhatsApp.
     if (!wilaya) return router.get(route('search'), sejour);
 
-    const commune = communes.value.find((c) => c.id === Number(communeId.value));
-
-    router.get(commune
-        ? route('search.commune', { wilaya: wilaya.slug ?? wilaya.id, commune: commune.slug ?? commune.id })
-        : route('search.wilaya', { wilaya: wilaya.slug ?? wilaya.id }), sejour);
+    router.get(route('search.wilaya', { wilaya: wilaya.slug ?? wilaya.id }), sejour);
 };
 </script>
 
@@ -177,37 +172,31 @@ const submitSearch = () => {
                         {{ stats.agencies ?? 0 }} agences vérifiées, dans {{ stats.wilayas ?? 58 }} wilayas.
                     </p>
 
-                    <!-- Le formulaire monte SUR l'image, en carte claire : c'est
-                         l'action principale, elle doit etre le point le plus
-                         lumineux de l'ecran. -->
-                    <div class="mt-10 max-w-3xl rounded-carte bg-white p-4 shadow-carte-survol sm:p-5 lg:max-w-4xl">
+                    <!--
+                        Le formulaire de la publicite : wilaya, depart, retour,
+                        Rechercher. Sur telephone les trois champs s'empilent a
+                        pleine largeur et font 52 px de haut — une cible qu'on
+                        touche du pouce sans viser, la ou les 38 px d'avant
+                        demandaient de s'y reprendre.
+
+                        Sur ordinateur, une seule rangee. La wilaya prend
+                        `minmax(0,1fr)` : sans le `0`, la piste reclamait la
+                        largeur du plus long nom de wilaya et poussait le bouton
+                        hors de la carte (constate le 2026-10-18).
+                    -->
+                    <div class="mt-8 max-w-3xl rounded-carte bg-white p-4 shadow-carte-survol sm:mt-10 sm:p-5 lg:max-w-4xl">
                         <form @submit.prevent="submitSearch"
-                            class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_9.5rem_9.5rem_auto]">
-                            <!-- Chaque champ porte son libelle : sans eux les
-                                 listes flottaient plus haut que les dates, et
-                                 la rangee partait de travers. -->
-                            <label class="flex min-w-0 flex-col text-left">
-                                <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
+                            class="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1fr)_11rem_11rem_auto] lg:items-end">
+                            <label class="col-span-2 flex min-w-0 flex-col text-left lg:col-span-1">
+                                <span class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-encre-400">
                                     {{ t('Wilaya') }}
                                 </span>
                                 <select v-model="wilayaId"
-                                    class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque">
+                                    class="h-[52px] rounded-bouton border-2 border-encre-100 text-base font-semibold text-encre-900 focus:border-marque focus:ring-marque">
                                     <option value="">{{ t('Toutes les wilayas') }}</option>
                                     <option v-for="w in searchWilayas" :key="w.id" :value="w.id">
                                         {{ w.code }} — {{ w.name_fr }}
                                     </option>
-                                </select>
-                            </label>
-                            <label class="flex min-w-0 flex-col text-left">
-                                <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
-                                    {{ t('Commune') }}
-                                </span>
-                                <select v-model="communeId" :disabled="!communes.length || loadingCommunes"
-                                    class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque disabled:bg-encre-50">
-                                    <option value="">
-                                        {{ loadingCommunes ? t('Chargement…') : t('Toutes les communes') }}
-                                    </option>
-                                    <option v-for="c in communes" :key="c.id" :value="c.id">{{ c.name_fr }}</option>
                                 </select>
                             </label>
 
@@ -216,51 +205,26 @@ const submitSearch = () => {
                                  `min` empeche une date passee sans message
                                  d'erreur a lire. -->
                             <label class="flex min-w-0 flex-col text-left">
-                                <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
+                                <span class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-encre-400">
                                     {{ t('Départ') }}
                                 </span>
                                 <input v-model="depart" type="date" :min="aujourdhui"
-                                    class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
+                                    class="h-[52px] min-w-0 rounded-bouton border-2 border-encre-100 text-base font-semibold text-encre-900 focus:border-marque focus:ring-marque" />
                             </label>
                             <label class="flex min-w-0 flex-col text-left">
-                                <span class="mb-1 text-[11px] font-medium uppercase tracking-wide text-encre-400">
+                                <span class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-encre-400">
                                     {{ t('Retour') }}
                                 </span>
                                 <input v-model="retour" type="date" :min="depart || aujourdhui"
-                                    class="rounded-bouton border-encre-200 text-sm shadow-sm focus:border-marque focus:ring-marque" />
+                                    class="h-[52px] min-w-0 rounded-bouton border-2 border-encre-100 text-base font-semibold text-encre-900 focus:border-marque focus:ring-marque" />
                             </label>
 
-                            <!--
-                                Pistes de grille : `minmax(0,1fr)` pour les
-                                listes et une largeur FIXE pour les dates.
-
-                                Avec `1fr_1fr_auto_auto_auto`, les deux listes
-                                reclamaient la largeur du plus long nom de
-                                wilaya (227 et 190 px) : une piste ne descend
-                                pas sous son contenu minimum, la somme
-                                depassait la carte de 40 px, et le dernier
-                                element — le bouton — sortait du cadre sur la
-                                photo. `minmax(0, …)` et `min-w-0` sur les
-                                enveloppes autorisent le retrecissement ; le
-                                navigateur tronque le texte de la liste fermee,
-                                ce qui est sans consequence.
-
-                                `sm:col-span-2` : sur deux colonnes le bouton
-                                se retrouvait seul sur une demi-ligne.
-
-                                `border border-transparent` + `py-2` : NE PAS
-                                retirer. Les champs font 38 px (20 de ligne,
-                                16 de marge interne, 2 de bordure) ; sans cette
-                                bordure il aurait fallu `py-2.5`, soit 40 px,
-                                et le bouton depassait de 2 px au-dessus de la
-                                rangee. Mesure, pas estime.
-                            -->
                             <button type="submit"
-                                class="self-end rounded-bouton border border-transparent bg-marque px-6 py-2 text-sm font-semibold text-encre-900 shadow-marque transition hover:bg-marque-400 sm:col-span-2 lg:col-span-1">
+                                class="col-span-2 mt-1 h-14 rounded-bouton bg-marque px-8 text-lg font-bold text-encre-900 shadow-marque transition hover:bg-marque-400 lg:col-span-1 lg:mt-0 lg:h-[52px] lg:text-base">
                                 {{ t('Rechercher') }}
                             </button>
                         </form>
-                        <p class="mt-2.5 text-left text-xs text-encre-400">
+                        <p class="mt-3 text-left text-xs leading-relaxed text-encre-400">
                             {{ t('Indiquez vos dates pour ne voir que les véhicules libres. Sans dates, tout le catalogue s’affiche.') }}
                         </p>
                     </div>
