@@ -145,8 +145,8 @@ const submit = () => form.post(route('bookings.store', props.vehicle.id), {
 
     <div class="min-h-screen bg-creme">
         <header class="border-b border-encre-100 bg-white">
-            <div class="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-                <Link href="/"><Marque /></Link>
+            <div class="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-4">
+                <Link href="/" class="shrink-0"><Marque /></Link>
                 <Link :href="route('vehicle.show', { vehicle: vehicle.id, slug: vehicle.slug })"
                     class="text-sm text-encre-500 hover:text-encre-900">
                     Retour au véhicule
